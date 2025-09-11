@@ -1,2 +1,75 @@
-"# Archivos sensiblesconfig.py.env*.log# Entorno virtual.venv/venv/env/# Cache de Python__pycache__/*.pyc*.pyo*.pyd.Python*.so# Base de datos*.db*.sqlite*.sqlite3# Archivos temporales*.tmp*.temptemp/tmp/# Screenshots y capturas*.png*.jpg*.jpegscreenshots/# ChromeDriverchromedriver.exechromedriver# IDE.vscode/.idea/*.swp*.swo# OS.DS_StoreThumbs.db# Logslogs/*.log# Node modules (si usas Node.js)node_modules/" 
-"# Base de datos compartida para uso internomonitoring.dbdom_intelligence.dbvision_learning.db" 
+# Archivos sensibles
+config.py
+.env
+*.log
+
+# Entorno virtual
+.venv/
+venv/
+env/
+
+# Cache de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Base de datos
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos temporales
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Screenshots y capturas
+*.png
+*.jpg
+*.jpeg
+screenshots/
+
+# ChromeDriver
+chromedriver.exe
+chromedriver
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/*.log
+
+# Node modules (si usas Node.js)
+node_modules/
+
+# Base de datos compartida para uso interno
+monitoring.db
+dom_intelligence.db
+vision_learning.db
+
+# Archivos de respaldo temporales durante actualizaciones
+temp_old_requirements.txt
+*.backup
+*.bak
+
+# Configuraciones locales de usuario
+user_config.json
+local_settings.ini
+
+# Archivos de instalación temporal
+setup_temp/
+install_temp/
+
+# Archivos de stash/respaldo de Git
+*.stash

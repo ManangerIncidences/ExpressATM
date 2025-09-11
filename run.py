@@ -7,17 +7,19 @@ Este archivo sirve como punto de entrada principal para la aplicación ExpressAT
 Configura el servidor FastAPI y maneja la inicialización del sistema.
 
 Uso:
-    python run.py [--port PORT] [--host HOST] [--dev]
+    python run.py [--port PORT] [--host HOST] [--dev] [--version]
 
 Argumentos:
     --port, -p      Puerto del servidor (default: 8000)
     --host          Host del servidor (default: 0.0.0.0)
     --dev           Modo desarrollo con recarga automática
+    --version, -v   Mostrar información de versión
     --help, -h      Mostrar esta ayuda
 
 Ejemplos:
     python run.py                    # Servidor en puerto 8000
     python run.py --port 8080        # Servidor en puerto 8080
+    python run.py --version          # Mostrar versión actual
     python run.py --dev              # Modo desarrollo
 """
 
@@ -29,6 +31,15 @@ from pathlib import Path
 
 # Añadir el directorio raíz al path de Python
 sys.path.insert(0, str(Path(__file__).parent))
+
+# Importar información de versión
+try:
+    from version import get_version_info, print_version
+except ImportError:
+    def get_version_info():
+        return {"version": "2.0.0", "build_date": "2025-09-10", "release_notes": []}
+    def print_version():
+        print("ExpressATM v2.0.0")
 
 def setup_logging():
     """Configura el sistema de logging"""
@@ -149,7 +160,18 @@ Ejemplos de uso:
         help='Modo desarrollo con recarga automática'
     )
     
+    parser.add_argument(
+        '--version', '-v',
+        action='store_true',
+        help='Mostrar información de versión'
+    )
+    
     args = parser.parse_args()
+    
+    # Mostrar versión si se solicita
+    if args.version:
+        print_version()
+        sys.exit(0)
     
     # Banner de inicio
     print("=" * 60)
