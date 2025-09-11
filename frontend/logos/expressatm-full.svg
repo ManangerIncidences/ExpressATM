@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="200" viewBox="0 0 720 200">
+  <defs>
+    <style>
+      .blue { fill:#1E88E5; }
+      .green { fill:#43A047; }
+      .red { fill:#E53935; }
+      .dark { fill:#212121; }
+      .label { font: 700 56px/1 'Inter', 'Segoe UI', Arial, sans-serif; }
+      .labelThin { font: 500 56px/1 'Inter', 'Segoe UI', Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <!-- Icon block (scaled up) -->
+  <g transform="translate(12,12)">
+    <circle cx="88" cy="88" r="76" fill="none" stroke="#1E88E5" stroke-width="12"/>
+    <rect x="44"  y="104" width="20" height="44" class="green" rx="4"/>
+    <rect x="72"  y="92"  width="20" height="56" class="green" rx="4"/>
+    <rect x="100" y="74"  width="20" height="74" class="green" rx="4"/>
+    <polyline points="44,120 76,100 104,88 126,66"
+              fill="none" stroke="#1E88E5" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="44"  cy="120" r="5" class="blue"/>
+    <circle cx="76"  cy="100" r="5" class="blue"/>
+    <circle cx="104" cy="88"  r="5" class="blue"/>
+    <circle cx="126" cy="66"  r="5" class="blue"/>
+    <g transform="translate(120,120)">
+      <polygon points="0,32 20,-4 40,32" class="red"/>
+      <rect x="18" y="10" width="4" height="12" fill="#fff" rx="2"/>
+      <circle cx="20" cy="24" r="3" fill="#fff"/>
+    </g>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="220" y="96" class="labelThin blue">Express</text>
+  <text x="220" y="152" class="label dark">ATM</text>
+</svg>

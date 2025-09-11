@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <style>
+      .blue { fill:#1E88E5; }
+      .green { fill:#43A047; }
+      .red { fill:#E53935; }
+      .dark { fill:#212121; }
+    </style>
+  </defs>
+
+  <!-- Circular ring -->
+  <circle cx="128" cy="128" r="108" fill="none" stroke="#1E88E5" stroke-width="16"/>
+
+  <!-- Bars -->
+  <rect x="64"  y="132" width="28" height="60" class="green" rx="4"/>
+  <rect x="104" y="116" width="28" height="76" class="green" rx="4"/>
+  <rect x="144" y="92"  width="28" height="100" class="green" rx="4"/>
+
+  <!-- Ascending line with nodes -->
+  <polyline points="64,156 118,128 158,108 184,80"
+            fill="none" stroke="#1E88E5" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="64"  cy="156" r="6" class="blue"/>
+  <circle cx="118" cy="128" r="6" class="blue"/>
+  <circle cx="158" cy="108" r="6" class="blue"/>
+  <circle cx="184" cy="80"  r="6" class="blue"/>
+
+  <!-- Alert triangle -->
+  <g transform="translate(168,156)">
+    <polygon points="0,44 28,-4 56,44" class="red" />
+    <rect x="26" y="16" width="4" height="16" fill="#fff" rx="2"/>
+    <circle cx="28" cy="36" r="3.5" fill="#fff"/>
+  </g>
+</svg>

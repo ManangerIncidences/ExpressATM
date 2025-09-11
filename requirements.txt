@@ -1,0 +1,19 @@
+# Dependencias principales de ExpressATM (runtime)
+fastapi
+uvicorn
+watchfiles
+jinja2
+sqlalchemy
+apscheduler
+psutil
+selenium
+numpy
+pandas
+fuzzywuzzy
+pydantic
+openpyxl
+fpdf2
+
+# IA opcional (habilita modelos reales si están disponibles)
+scikit-learn
+joblib

@@ -1,0 +1,2 @@
+"# Archivos sensiblesconfig.py.env*.log# Entorno virtual.venv/venv/env/# Cache de Python__pycache__/*.pyc*.pyo*.pyd.Python*.so# Base de datos*.db*.sqlite*.sqlite3# Archivos temporales*.tmp*.temptemp/tmp/# Screenshots y capturas*.png*.jpg*.jpegscreenshots/# ChromeDriverchromedriver.exechromedriver# IDE.vscode/.idea/*.swp*.swo# OS.DS_StoreThumbs.db# Logslogs/*.log# Node modules (si usas Node.js)node_modules/" 
+"# Base de datos compartida para uso internomonitoring.dbdom_intelligence.dbvision_learning.db" 
