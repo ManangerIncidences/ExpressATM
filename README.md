@@ -169,10 +169,17 @@ venv\Scripts\activate
 python -m pip install -r requirements.txt
 ```
 
-### **Error: "ChromeDriver no encontrado"**
+### **Error: "Unable to obtain driver for chrome" (ChromeDriver)**
+**Causa**: ChromeDriver faltante o incompatible con versión de Chrome
 ```bash
-# Actualizar ChromeDriver automáticamente
+# Solución automática
 update_chromedriver.bat
+
+# O con PowerShell (más robusta)
+powershell -ExecutionPolicy Bypass -File update_chromedriver.ps1
+
+# Verificar instalación
+check_system.bat
 ```
 
 ### **Error: "Puerto ocupado"**

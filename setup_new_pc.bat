@@ -103,10 +103,23 @@ if %errorlevel% neq 0 (
 REM Verificar e instalar ChromeDriver
 echo.
 echo 🌐 Configurando ChromeDriver...
-if exist "update_chromedriver.bat" (
-    call update_chromedriver.bat
+if exist "drivers\chromedriver.exe" (
+    echo ✅ ChromeDriver ya existe
+    drivers\chromedriver.exe --version 2>nul
+    if %errorlevel% neq 0 (
+        echo ⚠️  ChromeDriver corrupto, reinstalando...
+        call update_chromedriver.bat
+    ) else (
+        echo ✅ ChromeDriver funcional
+    )
 ) else (
-    echo ⚠️  update_chromedriver.bat no encontrado
+    echo 📥 Instalando ChromeDriver...
+    if exist "update_chromedriver.bat" (
+        call update_chromedriver.bat
+    ) else (
+        echo ❌ update_chromedriver.bat no encontrado
+        echo 💡 Descargar manualmente ChromeDriver desde: https://chromedriver.chromium.org/
+    )
 )
 
 REM Crear acceso directo en escritorio

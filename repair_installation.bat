@@ -108,11 +108,28 @@ except ImportError:
 )
 
 echo.
-echo 🌐 Configurando ChromeDriver...
-if exist "update_chromedriver.bat" (
-    call update_chromedriver.bat
+echo 🌐 Verificando y configurando ChromeDriver...
+if exist "drivers\chromedriver.exe" (
+    echo Verificando ChromeDriver existente...
+    drivers\chromedriver.exe --version >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo ⚠️  ChromeDriver corrupto, reinstalando...
+        if exist "update_chromedriver.bat" (
+            call update_chromedriver.bat
+        ) else (
+            echo ❌ Script de ChromeDriver no encontrado
+        )
+    ) else (
+        echo ✅ ChromeDriver funcional
+    )
 ) else (
-    echo ⚠️  update_chromedriver.bat no encontrado
+    echo 📥 Instalando ChromeDriver...
+    if exist "update_chromedriver.bat" (
+        call update_chromedriver.bat
+    ) else (
+        echo ❌ update_chromedriver.bat no encontrado
+        echo 💡 Instalar manualmente desde: https://chromedriver.chromium.org/
+    )
 )
 
 echo.

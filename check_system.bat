@@ -86,6 +86,15 @@ echo.
 echo 📍 ChromeDriver:
 if exist "drivers\chromedriver.exe" (
     echo    ✅ ChromeDriver encontrado
+    REM Verificar si funciona
+    drivers\chromedriver.exe --version >nul 2>&1
+    if %errorlevel% equ 0 (
+        for /f "tokens=*" %%i in ('drivers\chromedriver.exe --version 2^>nul') do echo    📌 %%i
+        echo    ✅ ChromeDriver funcional
+    ) else (
+        echo    ❌ ChromeDriver corrupto
+        echo    💡 Ejecutar: update_chromedriver.bat
+    )
 ) else (
     echo    ❌ ChromeDriver no encontrado
     echo    💡 Ejecutar: update_chromedriver.bat

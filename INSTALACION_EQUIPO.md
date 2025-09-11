@@ -72,6 +72,19 @@ venv\Scripts\activate
 python -m pip install -r requirements.txt
 ```
 
+### Error: "Unable to obtain driver for chrome" (Scraping falla)
+**Problema**: ChromeDriver faltante o incompatible
+```bash
+# Instalar ChromeDriver automáticamente
+update_chromedriver.bat
+
+# O versión PowerShell más robusta
+powershell -ExecutionPolicy Bypass -File update_chromedriver.ps1
+
+# Verificar que funciona
+drivers\chromedriver.exe --version
+```
+
 ### Error: "ChromeDriver no encontrado"
 1. Ejecutar `update_chromedriver.bat`
 2. O instalar Chrome si no está instalado
