@@ -244,11 +244,42 @@ MIT License - ver [LICENSE](LICENSE) para detalles.
 
 ---
 
+## 🔄 **Actualización del Sistema**
+
+### **📋 Verificar Actualizaciones**
+```bash
+# Verificar actualizaciones disponibles
+check_updates.bat
+
+# Ver versión actual
+python run.py --version
+```
+
+### **⚡ Actualizar Automáticamente**
+```bash
+# Actualización completa con respaldos automáticos
+update.bat
+```
+
+### **🔧 Actualización Manual**
+```bash
+# Paso a paso
+git pull origin main
+python -m pip install -r requirements.txt --upgrade
+```
+
+### **📚 Documentación de Actualización**
+- **Guía Completa**: `ACTUALIZACION.md`
+- **Resolución de Problemas**: Ver sección de errores comunes
+
+---
+
 ## 🎯 Inicio Rápido - Resumen
 
 1. **📥 Descargar**: https://github.com/ManangerIncidences/ExpressATM
 2. **⚡ Instalar**: `setup_new_pc.bat` (nueva PC) o `install.bat` (existente)  
 3. **🚀 Ejecutar**: `run.bat`
 4. **🌐 Acceder**: http://localhost:8000
+5. **🔄 Actualizar**: `update.bat` (cuando haya nuevas versiones)
 
 ¡Listo para monitorear ExpressATM! 🎉
