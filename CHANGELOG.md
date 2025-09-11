@@ -1,5 +1,48 @@
 # 📋 ExpressATM - Historial de Cambios
 
+## [2.2.0] - 2025-09-11
+
+### 🚀 **Scripts Unificados (Revolución de Simplicidad)**
+- **`install_complete.bat`**: Instalador universal TODO EN UNO
+  - ✅ Verificación completa del sistema
+  - 🔧 Instalación automática de entorno virtual
+  - 📦 Instalación de todas las dependencias
+  - 🌐 Configuración automática de ChromeDriver
+  - 🖥️ Creación de acceso directo
+  - 🧪 Verificación final y prueba opcional
+
+- **`smart_start.bat`**: Inicio inteligente
+  - 🔍 Detecta automáticamente problemas
+  - 💡 Sugiere soluciones específicas
+  - 🎯 Ejecuta acción recomendada
+  - ⚡ Proceso sin intervención manual
+
+- **`express_control.bat`**: Centro de control unificado
+  - 🎛️ Menú interactivo completo
+  - 📋 Todas las opciones en un lugar
+  - 🔄 Navegación intuitiva
+  - 🛠️ Herramientas avanzadas
+
+### 🌐 **ChromeDriver Mejorado**
+- Detección automática de versión de Chrome
+- Descarga e instalación completamente automática
+- Verificación de funcionalidad post-instalación
+- Manejo robusto de errores de red
+
+### 📚 **Documentación Simplificada**
+- README reorganizado con flujo simplificado
+- Enfoque en scripts unificados
+- Eliminación de complejidad innecesaria
+- Guías paso a paso actualizadas
+
+### 🎯 **Experiencia de Usuario**
+- Reducción de 10+ scripts a 3 principales
+- Instalación en un solo comando
+- Detección automática de problemas
+- Flujo intuitivo para todos los niveles
+
+---
+
 ## [2.1.0] - 2025-09-11
 
 ### ✅ **Agregado**

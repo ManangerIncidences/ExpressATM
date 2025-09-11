@@ -16,46 +16,50 @@ Sistema automatizado de monitoreo para loterías Express (CHANCE EXPRESS y RULET
 
 ## 🚀 Instalación en Nueva PC
 
-### 🆕 **Opción 1: Descarga desde GitHub (Recomendada)**
+### � **Método Unificado (Recomendado) - Un Solo Script**
 
 #### **Paso 1: Descargar Proyecto**
 1. Ve a: **https://github.com/ManangerIncidences/ExpressATM**
 2. Clic en **"Code"** > **"Download ZIP"**  
 3. Extraer en carpeta deseada (ej: `C:\ExpressATM`)
 
-#### **Paso 2: Instalación Automática**
+#### **Paso 2: Ejecutar Instalador Universal**
 ```bash
-# Ejecutar instalador automático
-setup_new_pc.bat
+# UN SOLO COMANDO - TODO AUTOMÁTICO
+install_complete.bat
+
+# O usar el inicio inteligente (detecta qué necesitas)
+smart_start.bat
 ```
 
-#### **Paso 3: Ejecutar Aplicación**
-```bash
-# Iniciar ExpressATM
-run.bat
-```
+✅ **Este script hace TODO automáticamente:**
+- Verifica Python y dependencias
+- Crea entorno virtual limpio  
+- Instala todas las dependencias
+- Configura ChromeDriver
+- Crea acceso directo en escritorio
+- Ofrece ejecutar inmediatamente
 
-### 🔧 **Opción 2: Con Git (Usuarios Avanzados)**
+### 🔧 **Con Git (Usuarios Avanzados)**
 ```bash
-# Clonar repositorio
+# Clonar y ejecutar todo en uno
 git clone https://github.com/ManangerIncidences/ExpressATM.git
 cd ExpressATM
-
-# Instalación automática
-setup_new_pc.bat
-
-# Ejecutar aplicación
-run.bat
+install_complete.bat
 ```
 
-### ⚙️ **Opción 3: Instalación Manual**
+### 🎛️ **Centro de Control (Opciones Avanzadas)**
+```bash
+# Menú interactivo con todas las opciones
+express_control.bat
+```
+
+### ⚙️ **Instalación Manual (Solo si es necesario)**
 ```bash
 # 1. Descargar ZIP desde GitHub y extraer
 # 2. Instalar Python 3.8+ desde python.org
 # 3. Abrir terminal en carpeta del proyecto
 pip install -r requirements.txt
-
-# 4. Ejecutar aplicación
 python run.py
 ```
 
@@ -138,9 +142,11 @@ ExpressATM/
 ├── 🤖 drivers/              # ChromeDriver
 ├── 📊 intelligence_models/  # Modelos de IA
 ├── 📝 logs/                 # Archivos de log
-├── 🔧 install.bat           # Instalador Windows
+├── � install_complete.bat  # ⭐ INSTALADOR UNIVERSAL (TODO EN UNO)
+├── 🎯 smart_start.bat       # ⭐ INICIO INTELIGENTE (DETECTA QUÉ NECESITAS)
+├── 🎛️ express_control.bat   # ⭐ CENTRO DE CONTROL (MENÚ COMPLETO)
 ├── ▶️ run.bat               # Ejecutor rápido
-├── 🆕 setup_new_pc.bat      # Instalador nueva PC
+├── 🔄 update.bat            # Actualización automática
 ├── 🔄 sync_data.bat         # Sincronizar equipo
 ├── ⬆️ update_data.bat       # Subir datos equipo
 └── 📋 requirements.txt      # Dependencias Python
@@ -281,12 +287,34 @@ python -m pip install -r requirements.txt --upgrade
 
 ---
 
+## 🎯 **Scripts Principales - TODO SIMPLIFICADO**
+
+### 🌟 **Scripts Unificados (Usa Estos):**
+- **`install_complete.bat`** - 🚀 Instalación completa automática (nuevos usuarios)  
+- **`smart_start.bat`** - 🎯 Inicio inteligente (detecta qué necesitas y lo hace)
+- **`express_control.bat`** - 🎛️ Centro de control (menú con todas las opciones)
+
+### 📊 **Scripts Específicos (Opcionales):**
+- `update.bat` - Actualizar desde GitHub
+- `check_updates.bat` - Ver actualizaciones disponibles
+- `update_chromedriver.bat` - Solo instalar ChromeDriver
+- `check_system.bat` - Diagnóstico del sistema
+- `repair_installation.bat` - Reparar problemas
+
+---
+
 ## 🎯 Inicio Rápido - Resumen
 
+### 🆕 **NUEVA PC (Súper Fácil):**
 1. **📥 Descargar**: https://github.com/ManangerIncidences/ExpressATM
-2. **⚡ Instalar**: `setup_new_pc.bat` (nueva PC) o `install.bat` (existente)  
-3. **🚀 Ejecutar**: `run.bat`
-4. **🌐 Acceder**: http://localhost:8000
-5. **🔄 Actualizar**: `update.bat` (cuando haya nuevas versiones)
+2. **🚀 UN COMANDO**: `install_complete.bat`  
+3. **🌐 Usar**: http://localhost:8000
+
+### 🔄 **PC EXISTENTE:**
+1. **🎯 Ejecutar**: `smart_start.bat` (detecta automáticamente qué hacer)
+2. **🌐 Usar**: http://localhost:8000
+
+### 🎛️ **OPCIONES AVANZADAS:**
+1. **� Menú Completo**: `express_control.bat`
 
 ¡Listo para monitorear ExpressATM! 🎉

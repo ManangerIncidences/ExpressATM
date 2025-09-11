@@ -1,8 +1,15 @@
 # ExpressATM - Información de Versión
 
-VERSION = "2.1.0"
+VERSION = "2.2.0"
 BUILD_DATE = "2025-09-11"
 RELEASE_NOTES = {
+    "2.2.0": [
+        "🚀 Instalador universal - TODO en un solo script",
+        "🎯 Inicio inteligente - detecta automáticamente qué necesitas",
+        "🎛️ Centro de control unificado - menú con todas las opciones",
+        "🌐 ChromeDriver mejorado - instalación automática robusta",
+        "📋 Scripts simplificados - menos archivos, más funcionalidad"
+    ],
     "2.1.0": [
         "✅ Corregidos errores de instalación en nuevas PCs",
         "🛠️ Agregados scripts de reparación automática",
