@@ -22,12 +22,21 @@ echo Python %PYTHON_VERSION% encontrado
 REM Crear entorno virtual
 echo.
 echo Creando entorno virtual...
+
+REM Eliminar entorno virtual existente si existe (puede tener rutas incorrectas)
+if exist "venv" (
+    echo Limpiando entorno virtual existente...
+    rmdir /S /Q venv
+)
+
 python -m venv venv
 call venv\Scripts\activate.bat
 
 REM Instalar dependencias
 echo.
 echo Instalando dependencias...
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 
