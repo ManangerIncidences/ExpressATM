@@ -30,21 +30,54 @@ echo ==========================================
 REM ===== VERIFICAR PYTHON =====
 echo.
 echo 🔍 [1/8] Verificando Python...
+
+REM Probar diferentes comandos de Python
+set PYTHON_CMD=
+set PYTHON_VERSION=
+
+REM Probar 'python'
 python --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo ❌ ERROR: Python no esta instalado
-    echo.
-    echo 🔧 SOLUCION REQUERIDA:
-    echo 1. Instalar Python 3.8+ desde: https://python.org/downloads
-    echo 2. ✅ IMPORTANTE: Marcar "Add Python to PATH"
-    echo 3. Reiniciar PC
-    echo 4. Ejecutar este script nuevamente
-    echo.
-    pause
-    exit /b 1
+if %errorlevel% equ 0 (
+    set PYTHON_CMD=python
+    for /f "tokens=2" %%i in ('python --version 2^>^&1') do set PYTHON_VERSION=%%i
+    goto python_found
 )
-for /f "tokens=2" %%i in ('python --version 2^>^&1') do set PYTHON_VERSION=%%i
-echo ✅ Python %PYTHON_VERSION% encontrado
+
+REM Probar 'python3'
+python3 --version >nul 2>&1
+if %errorlevel% equ 0 (
+    set PYTHON_CMD=python3
+    for /f "tokens=2" %%i in ('python3 --version 2^>^&1') do set PYTHON_VERSION=%%i
+    goto python_found
+)
+
+REM Probar 'py' (Python Launcher)
+py --version >nul 2>&1
+if %errorlevel% equ 0 (
+    set PYTHON_CMD=py
+    for /f "tokens=2" %%i in ('py --version 2^>^&1') do set PYTHON_VERSION=%%i
+    goto python_found
+)
+
+REM Python no encontrado
+echo ❌ ERROR: Python no esta instalado o no esta en PATH
+echo.
+echo 🔧 SOLUCION REQUERIDA:
+echo 1. Instalar Python 3.8+ desde: https://python.org/downloads
+echo 2. ✅ IMPORTANTE: Marcar "Add Python to PATH" durante instalacion
+echo 3. Reiniciar PC
+echo 4. Ejecutar este script nuevamente
+echo.
+echo 💡 ALTERNATIVA - Verificar instalacion existente:
+echo    • Buscar "python.exe" en tu PC
+echo    • Agregar carpeta a PATH manualmente
+echo    • O reinstalar Python con opcion PATH marcada
+echo.
+pause
+exit /b 1
+
+:python_found
+echo ✅ Python %PYTHON_VERSION% encontrado (comando: %PYTHON_CMD%)
 
 REM ===== VERIFICAR GIT (opcional) =====
 echo.
@@ -92,15 +125,15 @@ REM ===== LIMPIAR ENTORNO VIRTUAL CORRUPTO =====
 echo.
 echo 🧹 [4/8] Preparando entorno virtual...
 if exist "venv" (
-    echo Eliminando entorno virtual existente (puede tener rutas incorrectas)...
+    echo Eliminando entorno virtual existente (puede tener rutas incorrectas)
     rmdir /S /Q venv
     if %errorlevel% neq 0 (
-        echo ⚠️  No se pudo eliminar completamente, continuando...
+        echo ⚠️  No se pudo eliminar completamente, continuando
     )
 )
 
-echo ✅ Creando nuevo entorno virtual...
-python -m venv venv
+echo ✅ Creando nuevo entorno virtual
+%PYTHON_CMD% -m venv venv
 if %errorlevel% neq 0 (
     echo ❌ ERROR: No se pudo crear entorno virtual
     echo 💡 Verifica que Python este correctamente instalado
@@ -124,15 +157,15 @@ echo ==========================================
 REM ===== ACTUALIZAR PIP =====
 echo.
 echo 📦 [5/8] Actualizando pip...
-python -m pip install --upgrade pip --quiet
+%PYTHON_CMD% -m pip install --upgrade pip --quiet
 if %errorlevel% neq 0 (
-    echo ⚠️  Advertencia: No se pudo actualizar pip, continuando...
+    echo ⚠️  Advertencia: No se pudo actualizar pip, continuando
 )
 
 REM ===== INSTALAR DEPENDENCIAS =====
 echo.
 echo 📚 [6/8] Instalando dependencias de ExpressATM...
-echo    (Esto puede tomar 2-3 minutos...)
+echo    (Esto puede tomar 2-3 minutos)
 
 if not exist "requirements.txt" (
     echo ❌ ERROR: requirements.txt no encontrado
@@ -141,15 +174,15 @@ if not exist "requirements.txt" (
     exit /b 1
 )
 
-python -m pip install -r requirements.txt --quiet
+%PYTHON_CMD% -m pip install -r requirements.txt --quiet
 if %errorlevel% neq 0 (
     echo ❌ ERROR instalando dependencias
     echo.
-    echo 🔧 Intentando instalacion de dependencias criticas...
-    python -m pip install fastapi uvicorn pandas selenium numpy sqlalchemy --quiet
+    echo 🔧 Intentando instalacion de dependencias criticas
+    %PYTHON_CMD% -m pip install fastapi uvicorn pandas selenium numpy sqlalchemy --quiet
     
-    echo 🔄 Reintentando instalacion completa...
-    python -m pip install -r requirements.txt
+    echo 🔄 Reintentando instalacion completa
+    %PYTHON_CMD% -m pip install -r requirements.txt
     
     if %errorlevel% neq 0 (
         echo ❌ ERROR: No se pudieron instalar todas las dependencias
@@ -164,9 +197,9 @@ echo ✅ Dependencias instaladas exitosamente
 REM ===== VERIFICAR DEPENDENCIAS CRITICAS =====
 echo.
 echo 🧪 Verificando dependencias criticas...
-python -c "import fastapi, pandas, selenium; print('✅ Dependencias principales verificadas')" 2>nul
+%PYTHON_CMD% -c "import fastapi, pandas, selenium; print('✅ Dependencias principales verificadas')" 2>nul
 if %errorlevel% neq 0 (
-    echo ⚠️  Algunas dependencias pueden faltar, pero continuando...
+    echo ⚠️  Algunas dependencias pueden faltar, pero continuando
 )
 
 echo.
@@ -181,7 +214,7 @@ echo 🌐 [7/8] Configurando ChromeDriver...
 if not exist "drivers" mkdir drivers
 
 if "%CHROME_AVAILABLE%"=="true" (
-    echo 📥 Descargando ChromeDriver automaticamente...
+    echo 📥 Descargando ChromeDriver automaticamente
     
     REM Obtener version de Chrome
     for /f "tokens=*" %%i in ('powershell -command "& {(Get-ItemProperty '%CHROME_PATH%').VersionInfo.ProductVersion}"') do set CHROME_VERSION=%%i
@@ -247,7 +280,7 @@ if exist "drivers\chromedriver.exe" (
 
 REM ===== CREAR ACCESO DIRECTO =====
 echo.
-echo 🖥️  Creando acceso directo en escritorio...
+echo 🖥️  Creando acceso directo en escritorio
 set "scriptPath=%~dp0run.bat"
 set "desktopPath=%USERPROFILE%\Desktop"
 set "shortcutPath=%desktopPath%\ExpressATM.lnk"
@@ -264,7 +297,7 @@ echo.
 echo 🚀 FORMAS DE EJECUTAR:
 echo    1. Doble clic en "ExpressATM" en el escritorio
 echo    2. Ejecutar: run.bat
-echo    3. Comando: python run.py
+echo    3. Comando: %PYTHON_CMD% run.py
 echo.
 echo 🌐 ACCESO WEB (despues de ejecutar):
 echo    • Panel Principal: http://localhost:8000
@@ -287,12 +320,12 @@ echo.
 set /p TEST_RUN="¿Probar ExpressATM ahora? (S/N): "
 if /i "%TEST_RUN%"=="S" (
     echo.
-    echo 🚀 Iniciando ExpressATM...
+    echo 🚀 Iniciando ExpressATM
     echo    (Se abrira en el navegador automaticamente)
     echo    (Presiona Ctrl+C para detener)
     echo.
     timeout /t 3 /nobreak >nul
-    python run.py
+    %PYTHON_CMD% run.py
 ) else (
     echo.
     echo ✅ Instalacion completa. Para ejecutar usa: run.bat

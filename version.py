@@ -1,8 +1,15 @@
 # ExpressATM - Información de Versión
 
-VERSION = "2.2.0"
+VERSION = "2.2.1"
 BUILD_DATE = "2025-09-11"
 RELEASE_NOTES = {
+    "2.2.1": [
+        "🐍 Detección de Python mejorada - compatibilidad universal",
+        "🔍 Soporte para python, python3 y py launcher",
+        "⚡ Variables dinámicas para comandos Python",
+        "🛠️ Correcciones de puntos suspensivos en scripts batch",
+        "✅ Instalación probada y funcional"
+    ],
     "2.2.0": [
         "🚀 Instalador universal - TODO en un solo script",
         "🎯 Inicio inteligente - detecta automáticamente qué necesitas",

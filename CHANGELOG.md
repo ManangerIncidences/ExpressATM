@@ -1,5 +1,15 @@
 # 📋 ExpressATM - Historial de Cambios
 
+## [2.2.1] - 2025-09-11
+
+### 🐍 **Detección de Python Mejorada**
+- **🔍 Detección universal**: Soporte para `python`, `python3` y `py launcher`
+- **⚡ Variables dinámicas**: Implementación de `%PYTHON_CMD%` en todos los scripts
+- **🛠️ Corrección de errores**: Eliminados puntos suspensivos problemáticos en batch
+- **✅ Instalación probada**: Instalador completamente funcional y verificado
+- **🌐 Compatibilidad universal**: Funciona con diferentes configuraciones de Python
+- **🎯 Scripts actualizados**: `install_complete.bat`, `smart_start.bat`, `express_control.bat`
+
 ## [2.2.0] - 2025-09-11
 
 ### 🚀 **Scripts Unificados (Revolución de Simplicidad)**

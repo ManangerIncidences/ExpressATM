@@ -1,5 +1,35 @@
 @echo off
 setlocal enabledelayedexpansion
+
+REM ===== CONFIGURACION INICIAL DE PYTHON =====
+set PYTHON_CMD=
+set PYTHON_VERSION=
+
+REM Probar 'python' primero
+python --version >nul 2>&1
+if %errorlevel% equ 0 (
+    set PYTHON_CMD=python
+    for /f "tokens=2" %%i in ('python --version 2^>^&1') do set PYTHON_VERSION=%%i
+    goto :menu_start
+)
+
+REM Probar 'python3'
+python3 --version >nul 2>&1
+if %errorlevel% equ 0 (
+    set PYTHON_CMD=python3
+    for /f "tokens=2" %%i in ('python3 --version 2^>^&1') do set PYTHON_VERSION=%%i
+    goto :menu_start
+)
+
+REM Probar 'py' (Python Launcher)
+py --version >nul 2>&1
+if %errorlevel% equ 0 (
+    set PYTHON_CMD=py
+    for /f "tokens=2" %%i in ('py --version 2^>^&1') do set PYTHON_VERSION=%%i
+    goto :menu_start
+)
+
+:menu_start
 :MENU
 cls
 echo.
@@ -132,9 +162,14 @@ goto MENU
 :SHOW_VERSION
 echo.
 echo 📋 Informacion de Version:
-python run.py --version 2>nul
-if %errorlevel% neq 0 (
-    echo ⚠️  No se pudo obtener informacion de version
+if defined PYTHON_CMD (
+    %PYTHON_CMD% run.py --version 2>nul
+    if %errorlevel% neq 0 (
+        echo ⚠️  No se pudo obtener informacion de version
+        echo 💡 Ejecutar: Instalacion Completa
+    )
+) else (
+    echo ❌ Python no detectado
     echo 💡 Ejecutar: Instalacion Completa
 )
 echo.

@@ -15,13 +15,45 @@ set NEEDS_CHROMEDRIVER=false
 set NEEDS_REPAIR=false
 set CAN_RUN=true
 
-REM Verificar Python
+REM ===== VERIFICAR PYTHON =====
+REM Inicializar variables
+set PYTHON_CMD=
+set PYTHON_VERSION=
+
+REM Probar 'python' primero
 python --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo ❌ Python no detectado
-    set NEEDS_INSTALL=true
-    set CAN_RUN=false
+if %errorlevel% equ 0 (
+    set PYTHON_CMD=python
+    for /f "tokens=2" %%i in ('python --version 2^>^&1') do set PYTHON_VERSION=%%i
+    goto :python_found
 )
+
+REM Probar 'python3'
+python3 --version >nul 2>&1
+if %errorlevel% equ 0 (
+    set PYTHON_CMD=python3
+    for /f "tokens=2" %%i in ('python3 --version 2^>^&1') do set PYTHON_VERSION=%%i
+    goto :python_found
+)
+
+REM Probar 'py' (Python Launcher)
+py --version >nul 2>&1
+if %errorlevel% equ 0 (
+    set PYTHON_CMD=py
+    for /f "tokens=2" %%i in ('py --version 2^>^&1') do set PYTHON_VERSION=%%i
+    goto :python_found
+)
+
+REM Python no encontrado
+echo ❌ Python no detectado
+set NEEDS_INSTALL=true
+set CAN_RUN=false
+goto :continue_checks
+
+:python_found
+echo ✅ Python %PYTHON_VERSION% encontrado (comando: %PYTHON_CMD%)
+
+:continue_checks
 
 REM Verificar entorno virtual
 if not exist "venv\Scripts\python.exe" (
