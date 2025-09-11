@@ -1,5 +1,15 @@
 # 📋 ExpressATM - Historial de Cambios
 
+## [2.2.2] - 2025-09-11
+
+### 🧰 Instalador y Ejecución más robustos
+- 🔎 Detección de Python ampliada: `where`, `py launcher` y búsqueda en Registro
+- 📦 Upgrade automático de `pip`, `setuptools` y `wheel`
+- 🧠 Preinstalación binaria de `numpy` y `scikit-learn` (evita compilaciones en Windows)
+- 📝 Log detallado de instalación: `logs/install_pip.log`
+- 🧪 Verificación de dependencias clave tras instalación
+- ▶️ `run.bat` prioriza `venv\Scripts\python.exe` y agrega fallback seguro a `py`/`python`
+
 ## [2.2.1] - 2025-09-11
 
 ### 🐍 **Detección de Python Mejorada**

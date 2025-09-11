@@ -13,7 +13,7 @@ echo    ✅ Configuracion de ChromeDriver
 echo    ✅ Verificacion final
 echo    ✅ Prueba de funcionamiento
 echo.
-echo ⏱️  Tiempo estimado: 3-5 minutos
+echo ⏱️  Tiempo estimado: 3-7 minutos
 echo.
 set /p CONTINUE="¿Continuar con la instalacion completa? (S/N): "
 if /i not "%CONTINUE%"=="S" (
@@ -59,6 +59,32 @@ if %errorlevel% equ 0 (
     goto python_found
 )
 
+REM Intentar localizar python por ruta exacta (where)
+for /f "delims=" %%p in ('where python 2^>nul') do (
+    if not defined PYTHON_CMD (
+        set "PYTHON_CMD=%%p"
+        for /f "tokens=2" %%i in ('"%%p" --version 2^>^&1') do set PYTHON_VERSION=%%i
+        goto python_found
+    )
+)
+
+for /f "delims=" %%p in ('where python3 2^>nul') do (
+    if not defined PYTHON_CMD (
+        set "PYTHON_CMD=%%p"
+        for /f "tokens=2" %%i in ('"%%p" --version 2^>^&1') do set PYTHON_VERSION=%%i
+        goto python_found
+    )
+)
+
+REM Intentar localizar python desde el registro (PowerShell)
+for /f "usebackq delims=" %%p in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$keys=@('HKLM:\\SOFTWARE\\Python\\PythonCore','HKCU:\\SOFTWARE\\Python\\PythonCore','HKLM:\\SOFTWARE\\WOW6432Node\\Python\\PythonCore'); foreach($k in $keys){ if(Test-Path $k){ $v=Get-ChildItem $k | Sort-Object -Property PSChildName -Descending | Select-Object -First 1; if($v){ $ip=(Get-ItemProperty $v.PSPath -Name InstallPath -ErrorAction SilentlyContinue).InstallPath; if($ip){ $exe=Join-Path $ip 'python.exe'; if(Test-Path $exe){ Write-Output $exe; break } } } } }" 2^>^&1` ) do (
+    if not defined PYTHON_CMD (
+        set "PYTHON_CMD=%%p"
+        for /f "tokens=2" %%i in ('"%%p" --version 2^>^&1') do set PYTHON_VERSION=%%i
+        goto python_found
+    )
+)
+
 REM Python no encontrado
 echo ❌ ERROR: Python no esta instalado o no esta en PATH
 echo.
@@ -77,7 +103,7 @@ pause
 exit /b 1
 
 :python_found
-echo ✅ Python %PYTHON_VERSION% encontrado (comando: %PYTHON_CMD%)
+echo ✅ Python %PYTHON_VERSION% encontrado (comando/ruta: %PYTHON_CMD%)
 
 REM ===== VERIFICAR GIT (opcional) =====
 echo.
@@ -133,7 +159,7 @@ if exist "venv" (
 )
 
 echo ✅ Creando nuevo entorno virtual
-%PYTHON_CMD% -m venv venv
+"%PYTHON_CMD%" -m venv venv
 if %errorlevel% neq 0 (
     echo ❌ ERROR: No se pudo crear entorno virtual
     echo 💡 Verifica que Python este correctamente instalado
@@ -149,6 +175,19 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+REM Siempre usar el Python del entorno virtual para instalar y ejecutar
+set "VENV_PY=venv\Scripts\python.exe"
+if not exist "%VENV_PY%" (
+    echo ❌ ERROR: Python del entorno virtual no encontrado
+    pause
+    exit /b 1
+)
+
+REM Preparar carpeta de logs
+if not exist "logs" mkdir logs >nul 2>&1
+set "INSTALL_LOG=logs\install_pip.log"
+echo. > "%INSTALL_LOG%"
+
 echo.
 echo ==========================================
 echo    FASE 3: INSTALACION DE DEPENDENCIAS
@@ -157,9 +196,9 @@ echo ==========================================
 REM ===== ACTUALIZAR PIP =====
 echo.
 echo 📦 [5/8] Actualizando pip...
-%PYTHON_CMD% -m pip install --upgrade pip --quiet
+"%VENV_PY%" -m pip install --upgrade pip setuptools wheel --quiet >> "%INSTALL_LOG%" 2>&1
 if %errorlevel% neq 0 (
-    echo ⚠️  Advertencia: No se pudo actualizar pip, continuando
+    echo ⚠️  Advertencia: No se pudo actualizar pip/setuptools/wheel, continuando
 )
 
 REM ===== INSTALAR DEPENDENCIAS =====
@@ -174,18 +213,24 @@ if not exist "requirements.txt" (
     exit /b 1
 )
 
-%PYTHON_CMD% -m pip install -r requirements.txt --quiet
+REM Pre-instalar paquetes pesados con binarios (evitar compilaciones)
+"%VENV_PY%" -m pip install --only-binary :all: numpy -q >> "%INSTALL_LOG%" 2>&1
+"%VENV_PY%" -m pip install --only-binary :all: scikit-learn -q >> "%INSTALL_LOG%" 2>&1
+
+REM Instalar el resto de dependencias
+"%VENV_PY%" -m pip install -r requirements.txt --quiet >> "%INSTALL_LOG%" 2>&1
 if %errorlevel% neq 0 (
     echo ❌ ERROR instalando dependencias
     echo.
     echo 🔧 Intentando instalacion de dependencias criticas
-    %PYTHON_CMD% -m pip install fastapi uvicorn pandas selenium numpy sqlalchemy --quiet
+    "%VENV_PY%" -m pip install fastapi uvicorn pandas selenium numpy sqlalchemy --quiet >> "%INSTALL_LOG%" 2>&1
     
-    echo 🔄 Reintentando instalacion completa
-    %PYTHON_CMD% -m pip install -r requirements.txt
+    echo 🔄 Reintentando instalacion completa (salida en %INSTALL_LOG%)
+    "%VENV_PY%" -m pip install -r requirements.txt >> "%INSTALL_LOG%" 2>&1
     
     if %errorlevel% neq 0 (
         echo ❌ ERROR: No se pudieron instalar todas las dependencias
+        echo 📄 Revisa el log: %INSTALL_LOG%
         echo 💡 Revisa tu conexion a internet y intenta nuevamente
         pause
         exit /b 1
@@ -194,10 +239,16 @@ if %errorlevel% neq 0 (
 
 echo ✅ Dependencias instaladas exitosamente
 
+REM Comprobar integridad de dependencias
+"%VENV_PY%" -m pip check >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ⚠️  Se detectaron conflictos de dependencias (ver %INSTALL_LOG%)
+)
+
 REM ===== VERIFICAR DEPENDENCIAS CRITICAS =====
 echo.
 echo 🧪 Verificando dependencias criticas...
-%PYTHON_CMD% -c "import fastapi, pandas, selenium; print('✅ Dependencias principales verificadas')" 2>nul
+"%VENV_PY%" -c "import fastapi, pandas, selenium, sklearn, sqlalchemy, uvicorn, jinja2, apscheduler, psutil, numpy, openpyxl, fpdf; print('OK')" 1>nul 2>>"%INSTALL_LOG%"
 if %errorlevel% neq 0 (
     echo ⚠️  Algunas dependencias pueden faltar, pero continuando
 )
@@ -224,7 +275,7 @@ if "%CHROME_AVAILABLE%"=="true" (
         echo 📍 Detectada version Chrome: !CHROME_VERSION! (Principal: !CHROME_MAJOR!)
         
         REM Descargar ChromeDriver
-        powershell -command "& {try { $latest = Invoke-RestMethod -Uri 'https://chromedriver.storage.googleapis.com/LATEST_RELEASE_!CHROME_MAJOR!' -ErrorAction Stop; $url = 'https://chromedriver.storage.googleapis.com/' + $latest + '/chromedriver_win32.zip'; Invoke-WebRequest -Uri $url -OutFile 'drivers\chromedriver.zip' -ErrorAction Stop; Expand-Archive -Path 'drivers\chromedriver.zip' -DestinationPath 'drivers\' -Force; Remove-Item 'drivers\chromedriver.zip' -Force; Write-Host '✅ ChromeDriver instalado exitosamente' } catch { Write-Host '❌ Error:', $_.Exception.Message; exit 1 }}"
+    powershell -NoProfile -ExecutionPolicy Bypass -command "& {try { $latest = Invoke-RestMethod -Uri 'https://chromedriver.storage.googleapis.com/LATEST_RELEASE_!CHROME_MAJOR!' -ErrorAction Stop; $url = 'https://chromedriver.storage.googleapis.com/' + $latest + '/chromedriver_win32.zip'; Invoke-WebRequest -Uri $url -OutFile 'drivers\chromedriver.zip' -ErrorAction Stop; Expand-Archive -Path 'drivers\chromedriver.zip' -DestinationPath 'drivers\' -Force; Remove-Item 'drivers\chromedriver.zip' -Force; Write-Host '✅ ChromeDriver instalado exitosamente' } catch { Write-Host '❌ Error:', $_.Exception.Message; exit 1 }}"
         
         if %errorlevel% equ 0 (
             echo ✅ ChromeDriver configurado exitosamente
@@ -258,7 +309,7 @@ if exist "backend\app\main.py" (echo    ✅ backend\app\main.py) else (echo    �
 
 echo.
 echo 📍 Entorno virtual:
-venv\Scripts\python.exe --version 2>nul
+"%VENV_PY%" --version 2>nul
 if %errorlevel% equ 0 (
     echo    ✅ Entorno virtual funcional
 ) else (
@@ -297,7 +348,7 @@ echo.
 echo 🚀 FORMAS DE EJECUTAR:
 echo    1. Doble clic en "ExpressATM" en el escritorio
 echo    2. Ejecutar: run.bat
-echo    3. Comando: %PYTHON_CMD% run.py
+echo    3. Comando: "%VENV_PY%" run.py
 echo.
 echo 🌐 ACCESO WEB (despues de ejecutar):
 echo    • Panel Principal: http://localhost:8000
@@ -325,7 +376,7 @@ if /i "%TEST_RUN%"=="S" (
     echo    (Presiona Ctrl+C para detener)
     echo.
     timeout /t 3 /nobreak >nul
-    %PYTHON_CMD% run.py
+    "%VENV_PY%" run.py
 ) else (
     echo.
     echo ✅ Instalacion completa. Para ejecutar usa: run.bat
