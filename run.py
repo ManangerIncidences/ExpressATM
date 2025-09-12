@@ -206,7 +206,71 @@ Ejemplos de uso:
     try:
         import uvicorn
         from backend.app.main import app
-        
+        # Montaje de estáticos y rutas frontend si no existen
+        from pathlib import Path as _P
+        from fastapi.responses import HTMLResponse, FileResponse
+        from fastapi.staticfiles import StaticFiles
+
+        ROOT = _P(__file__).parent
+        FRONTEND = ROOT / "frontend"
+        STATIC = FRONTEND / "static"
+        LOGOS = FRONTEND / "logos"
+        SOUNDS = ROOT / "Sonidos"
+
+        def _route_exists(_path: str) -> bool:
+            for r in getattr(app, "routes", []):
+                if getattr(r, "path", "") == _path:
+                    return True
+            return False
+
+        def _has_mount(_prefix: str) -> bool:
+            for r in getattr(app, "routes", []):
+                if getattr(r, "path", "") == _prefix and r.__class__.__name__ == "Mount":
+                    return True
+            return False
+
+        # Montar directorios estáticos si existen
+        if STATIC.exists() and not _has_mount("/static"):
+            app.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
+        if LOGOS.exists() and not _has_mount("/logos"):
+            app.mount("/logos", StaticFiles(directory=str(LOGOS)), name="logos")
+        if SOUNDS.exists() and not _has_mount("/sounds"):
+            app.mount("/sounds", StaticFiles(directory=str(SOUNDS)), name="sounds")
+
+        def _serve_html(_filename: str) -> HTMLResponse:
+            fp = FRONTEND / _filename
+            if fp.exists():
+                try:
+                    content = fp.read_text(encoding="utf-8")
+                except Exception:
+                    content = fp.read_text(errors="ignore")
+                return HTMLResponse(content)
+            return HTMLResponse("Not Found", status_code=404)
+
+        # Rutas principales del frontend
+        if not _route_exists("/"):
+            @app.get("/", response_class=HTMLResponse)
+            def _root():
+                return _serve_html("index.html")
+
+        if not _route_exists("/dashboard"):
+            @app.get("/dashboard", response_class=HTMLResponse)
+            def _dashboard():
+                return _serve_html("dashboard.html")
+
+        if not _route_exists("/ai"):
+            @app.get("/ai", response_class=HTMLResponse)
+            def _ai():
+                return _serve_html("ai.html")
+
+        if not _route_exists("/favicon.ico"):
+            @app.get("/favicon.ico")
+            def _favicon():
+                for cand in (LOGOS / "imag_logo.ico", LOGOS / "logo.ico"):
+                    if cand.exists():
+                        return FileResponse(str(cand))
+                return HTMLResponse(status_code=204)
+
         print(f"Iniciando servidor en http://{args.host}:{args.port}")
         print(f"Panel principal: http://localhost:{args.port}")
         print(f"Dashboard: http://localhost:{args.port}/dashboard")
@@ -215,7 +279,7 @@ Ejemplos de uso:
         print()
         print("Presiona Ctrl+C para detener el servidor")
         print("=" * 60)
-        
+
         # Configuración de uvicorn
         config = {
             "app": app,
@@ -223,14 +287,14 @@ Ejemplos de uso:
             "port": args.port,
             "log_level": "info"
         }
-        
+
         if args.dev:
             config.update({
                 "reload": True,
                 "reload_dirs": ["backend", "frontend"]
             })
             print("Modo desarrollo: recarga automatica activada")
-        
+
         uvicorn.run(**config)
         
     except ImportError as e:
