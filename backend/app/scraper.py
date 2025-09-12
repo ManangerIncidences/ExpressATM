@@ -10,6 +10,7 @@ import re
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from backend.config import Config
+from backend.driver_manager import get_chromedriver_path
 import logging
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
@@ -93,8 +94,9 @@ class LotteryMonitorScraper:
             if getattr(Config, 'HEADLESS_MODE', False):
                 chrome_options.add_argument("--headless")
             
-            # Crear servicio SIMPLE (como el script rápido)
-            self.service = Service(Config.CHROMEDRIVER_PATH)
+            # Crear servicio del driver (usa variable de entorno si existe o detección automática)
+            driver_binary = Config.CHROMEDRIVER_PATH or get_chromedriver_path()
+            self.service = Service(driver_binary)
             
             # Crear driver con configuración mínima
             self.driver = webdriver.Chrome(service=self.service, options=chrome_options)

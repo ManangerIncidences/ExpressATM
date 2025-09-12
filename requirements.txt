@@ -17,3 +17,8 @@ fpdf2
 # IA opcional (habilita modelos reales si están disponibles)
 scikit-learn
 joblib
+
+# Utilidades adicionales
+python-dotenv
+python-Levenshtein
+webdriver-manager

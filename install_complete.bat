@@ -258,38 +258,15 @@ echo ==========================================
 echo    FASE 4: CONFIGURACION DE CHROMEDRIVER
 echo ==========================================
 
-REM ===== INSTALAR CHROMEDRIVER =====
+REM ===== INSTALAR CHROMEDRIVER (webdriver-manager) =====
 echo.
-echo 🌐 [7/8] Configurando ChromeDriver...
+echo 🌐 [7/8] Configurando ChromeDriver con webdriver-manager...
 
 if not exist "drivers" mkdir drivers
 
-if "%CHROME_AVAILABLE%"=="true" (
-    echo 📥 Descargando ChromeDriver automaticamente
-    
-    REM Obtener version de Chrome
-    for /f "tokens=*" %%i in ('powershell -command "& {(Get-ItemProperty '%CHROME_PATH%').VersionInfo.ProductVersion}"') do set CHROME_VERSION=%%i
-    
-    if not "!CHROME_VERSION!"=="" (
-        for /f "tokens=1 delims=." %%a in ("!CHROME_VERSION!") do set CHROME_MAJOR=%%a
-        echo 📍 Detectada version Chrome: !CHROME_VERSION! (Principal: !CHROME_MAJOR!)
-        
-        REM Descargar ChromeDriver
-    powershell -NoProfile -ExecutionPolicy Bypass -command "& {try { $latest = Invoke-RestMethod -Uri 'https://chromedriver.storage.googleapis.com/LATEST_RELEASE_!CHROME_MAJOR!' -ErrorAction Stop; $url = 'https://chromedriver.storage.googleapis.com/' + $latest + '/chromedriver_win32.zip'; Invoke-WebRequest -Uri $url -OutFile 'drivers\chromedriver.zip' -ErrorAction Stop; Expand-Archive -Path 'drivers\chromedriver.zip' -DestinationPath 'drivers\' -Force; Remove-Item 'drivers\chromedriver.zip' -Force; Write-Host '✅ ChromeDriver instalado exitosamente' } catch { Write-Host '❌ Error:', $_.Exception.Message; exit 1 }}"
-        
-        if %errorlevel% equ 0 (
-            echo ✅ ChromeDriver configurado exitosamente
-        ) else (
-            echo ⚠️  Error descargando ChromeDriver automaticamente
-            echo 💡 El scraping puede fallar, instalar manualmente desde: https://chromedriver.chromium.org
-        )
-    ) else (
-        echo ⚠️  No se pudo detectar version de Chrome
-        echo 💡 ChromeDriver se puede instalar manualmente despues
-    )
-) else (
-    echo ⚠️  Chrome no detectado, saltando instalacion de ChromeDriver
-    echo 💡 Para scraping, instalar Chrome y ejecutar: update_chromedriver.bat
+"%VENV_PY%" scripts\setup_chromedriver.py
+if %errorlevel% neq 0 (
+    echo ⚠️  No se pudo instalar ChromeDriver automaticamente. Puedes reintentar luego con update_chromedriver.bat
 )
 
 echo.

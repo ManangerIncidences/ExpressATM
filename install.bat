@@ -58,13 +58,12 @@ if not exist ".env" (
     echo Archivo .env ya existe
 )
 
-REM Configurar ChromeDriver
+REM Configurar ChromeDriver (webdriver-manager)
 echo.
-echo Configurando ChromeDriver...
-if exist "update_chromedriver.ps1" (
-    powershell -ExecutionPolicy Bypass -File update_chromedriver.ps1
-) else (
-    echo Descarga ChromeDriver manualmente desde https://chromedriver.chromium.org/
+echo Configurando ChromeDriver con webdriver-manager...
+python scripts\setup_chromedriver.py
+if errorlevel 1 (
+    echo Advertencia: No se pudo instalar ChromeDriver automaticamente. Puedes reintentar con update_chromedriver.bat
 )
 
 REM Inicializar base de datos

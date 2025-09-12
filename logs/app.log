@@ -1155,3 +1155,475 @@ Stacktrace:
 2025-09-10 20:16:53,791 - root - INFO - ExpressATM detenido
 2025-09-10 20:16:53,932 - backend.app.scraper - INFO - 🧹 Iniciando limpieza segura del driver...
 2025-09-10 20:16:53,933 - backend.app.scraper - INFO - ✓ No hay driver activo para cerrar
+2025-09-10 20:38:13,078 - root - INFO - ExpressATM detenido
+2025-09-11 15:37:35,938 - backend.app.vision_learning_engine - INFO - Vision Learning Engine inicializado (modo básico)
+2025-09-11 15:37:35,938 - backend.app.scraper - INFO - Sistema de vision + ML disponible
+2025-09-11 15:37:35,939 - backend.app.scraper_intelligent - INFO - Intelligent Scraper inicializado (modo básico)
+2025-09-11 15:37:35,943 - backend.app.intelligence - WARNING - No hay datos historicos suficientes
+2025-09-11 15:37:35,951 - backend.app.scheduler_hybrid - INFO - Scheduler hibrido inicializado (scrapers lazy)
+2025-09-11 15:37:36,084 - root - INFO - ExpressATM iniciado
+2025-09-11 15:37:36,084 - root - INFO - Dashboard disponible
+2025-09-11 15:37:36,084 - root - INFO - Documentacion API disponible
+2025-09-11 15:37:49,378 - backend.app.scheduler_hybrid - INFO - 🔄 Iniciando iteración manual asíncrona (no bloqueante)...
+2025-09-11 15:37:49,379 - backend.app.scheduler_hybrid - INFO - 🔄 INICIANDO ITERACIÓN AUTOMÁTICA PROGRAMADA
+2025-09-11 15:37:49,380 - backend.app.scheduler_hybrid - INFO - 🔄 Ejecutando iteración clásica automática
+2025-09-11 15:37:49,380 - backend.app.scheduler_hybrid - INFO - 🔄 Ejecutando iteración clásica...
+2025-09-11 15:37:49,381 - backend.app.scheduler_hybrid - INFO - 🔄 Inicializando scraper clásico...
+2025-09-11 15:37:50,391 - backend.app.dom_learning_engine - ERROR - Error analizando tendencia de rendimiento: no such table: monitoring_sessions
+2025-09-11 15:37:50,391 - backend.app.scraper - INFO - Sistema de vision + ML disponible
+2025-09-11 15:37:50,392 - backend.app.scraper - WARNING - Driver inactivo en intento 1, reinicializando...
+2025-09-11 15:37:50,392 - backend.app.scraper - INFO - Reinicializando driver...
+2025-09-11 15:37:51,556 - backend.app.scraper - INFO - 🖥️ Ventana posicionada en monitor principal y maximizada
+2025-09-11 15:37:51,558 - backend.app.vision_learning_engine - INFO - Driver configurado en sistema de vision
+2025-09-11 15:37:51,558 - backend.app.scraper - INFO - Driver registrado en sistema de vision
+2025-09-11 15:37:51,558 - backend.app.scraper - INFO - Driver de Chrome configurado con configuración optimizada para velocidad y pantalla
+2025-09-11 15:37:51,558 - backend.app.scraper - INFO - Driver reinicializado exitosamente
+2025-09-11 15:37:51,559 - backend.app.scraper - INFO - 🎯 Iniciando proceso de MONITOREO DUAL (sesión única)...
+2025-09-11 15:37:51,559 - backend.app.scraper - INFO -    📊 Lotería 1: CHANCE EXPRESS
+2025-09-11 15:37:51,559 - backend.app.scraper - INFO -    🎰 Lotería 2: RULETA EXPRESS
+2025-09-11 15:37:51,562 - backend.app.scraper - INFO - Iniciando proceso de login...
+2025-09-11 15:38:00,374 - backend.app.scraper - INFO - ✓ Usuario ingresado
+2025-09-11 15:38:00,433 - backend.app.scraper - INFO - ✓ Contraseña ingresada
+2025-09-11 15:38:00,786 - backend.app.scraper - INFO - ✓ Click normal en botón login
+2025-09-11 15:38:01,251 - backend.app.scraper - INFO - Login exitoso - Menú lateral cargado
+2025-09-11 15:38:03,252 - backend.app.scraper - INFO - ✓ Login exitoso
+2025-09-11 15:38:03,255 - backend.app.scraper - INFO - Navegando a Monitor de Ventas...
+2025-09-11 15:38:03,775 - backend.app.scraper - INFO - 🎯 Botón Monitoreo encontrado, expandiendo...
+2025-09-11 15:38:03,812 - backend.app.scraper - INFO - ✅ Click normal exitoso en Monitoreo
+2025-09-11 15:38:05,312 - backend.app.scraper - INFO - ✅ Menú Monitoreo expandido
+2025-09-11 15:38:05,324 - backend.app.scraper - INFO - ✅ Enlace Monitor de Ventas encontrado
+2025-09-11 15:38:06,553 - backend.app.scraper - INFO - ✅ Click normal exitoso en Monitor de Ventas
+2025-09-11 15:38:06,553 - backend.app.scraper - INFO - 🔍 Verificando carga de página del Monitor...
+2025-09-11 15:38:06,554 - backend.app.scraper - INFO - 🔍 Verificando carga de página del Monitor...
+2025-09-11 15:38:17,169 - backend.app.scraper - WARNING - ⏱️ Timeout esperando elementos, verificando URL...
+2025-09-11 15:38:17,173 - backend.app.scraper - INFO - ✅ Estamos en Monitor.aspx - navegación exitosa por URL
+2025-09-11 15:38:17,173 - backend.app.scraper - INFO - ✓ Navegación exitosa
+2025-09-11 15:38:17,176 - backend.app.scraper - INFO - Configurando filtros base...
+2025-09-11 15:38:17,176 - backend.app.scraper - INFO - 🔄 Configurando filtros base con Selenium...
+2025-09-11 15:38:17,646 - backend.app.scraper - INFO - ✅ 1. Tipo Lotería: No tradicionales
+2025-09-11 15:38:20,235 - backend.app.scraper - INFO - ✅ 2. Filtro: Ventas Mayor o Igual a
+2025-09-11 15:38:20,955 - backend.app.scraper - INFO - ✅ 3. Monto: 10000
+2025-09-11 15:38:20,955 - backend.app.scraper - INFO - ✅ Filtros base configurados con Selenium
+2025-09-11 15:38:20,956 - backend.app.scraper - INFO - ✓ Filtros base configurados
+2025-09-11 15:38:20,956 - backend.app.scraper - INFO - 🔄 Procesando CHANCE EXPRESS...
+2025-09-11 15:38:20,957 - backend.app.scraper - INFO - 🎯 Seleccionando CHANCE EXPRESS en dropdown...
+2025-09-11 15:38:20,957 - backend.app.scraper - INFO - Cambiando dropdown Lotería a CHANCE EXPRESS...
+2025-09-11 15:38:21,229 - backend.app.scraper - INFO - Usando icono de flecha
+2025-09-11 15:38:21,802 - backend.app.scraper - INFO - Encontradas 718 opciones de lotería
+2025-09-11 15:38:24,557 - backend.app.scraper - INFO - Opciones válidas encontradas: 9
+2025-09-11 15:38:24,557 - backend.app.scraper - INFO - Evaluando: 'Todos'
+2025-09-11 15:38:24,557 - backend.app.scraper - INFO - Evaluando: 'CHANCE EXPRESS'
+2025-09-11 15:38:24,558 - backend.app.scraper - INFO - ✅ Seleccionando CHANCE EXPRESS: CHANCE EXPRESS
+2025-09-11 15:38:24,906 - backend.app.scraper - INFO - ✅ Lotería cambiada a CHANCE EXPRESS
+2025-09-11 15:38:24,908 - backend.app.scraper - INFO - ✓ Dropdown cambiado a CHANCE EXPRESS
+2025-09-11 15:38:24,913 - backend.app.scraper - INFO - Ejecutando búsqueda...
+2025-09-11 15:38:24,929 - backend.app.scraper - INFO - Botón encontrado con selector: //a[contains(@class, 'btn-primary') and contains(text(), 'Buscar')]
+2025-09-11 15:38:24,936 - backend.app.scraper - INFO - Haciendo clic en botón de búsqueda...
+2025-09-11 15:38:24,946 - backend.app.scraper - INFO - ✓ Clic ejecutado en botón de búsqueda
+2025-09-11 15:38:26,947 - backend.app.scraper - INFO - Esperando resultados de búsqueda...
+2025-09-11 15:38:26,948 - backend.app.scraper - INFO - Esperando carga de tabla (optimizado)...
+2025-09-11 15:38:26,990 - backend.app.scraper - INFO - Tabla encontrada
+2025-09-11 15:38:33,584 - backend.app.scraper - INFO - Loaders desaparecidos
+2025-09-11 15:38:33,594 - backend.app.scraper - INFO - Filas con datos encontradas
+2025-09-11 15:38:34,617 - backend.app.scraper - INFO - Tabla estable con 35 filas
+2025-09-11 15:38:34,618 - backend.app.scraper - INFO - Búsqueda ejecutada exitosamente
+2025-09-11 15:38:34,618 - backend.app.scraper - INFO - ✓ Búsqueda ejecutada para CHANCE EXPRESS
+2025-09-11 15:38:34,618 - backend.app.scraper - INFO - ⏳ Esperando carga de tabla para CHANCE EXPRESS...
+2025-09-11 15:38:34,619 - backend.app.scraper - INFO - Esperando carga de tabla (optimizado)...
+2025-09-11 15:38:34,625 - backend.app.scraper - INFO - Tabla encontrada
+2025-09-11 15:38:39,670 - backend.app.scraper - INFO - Loaders desaparecidos
+2025-09-11 15:38:39,678 - backend.app.scraper - INFO - Filas con datos encontradas
+2025-09-11 15:38:40,693 - backend.app.scraper - INFO - Tabla estable con 35 filas
+2025-09-11 15:38:40,693 - backend.app.scraper - INFO - ✅ Tabla cargada para CHANCE EXPRESS
+2025-09-11 15:38:42,697 - backend.app.scraper - INFO - Extrayendo datos de la tabla...
+2025-09-11 15:38:42,697 - backend.app.scraper - INFO - Solicitando confirmacion visual de ML para carga completa...
+2025-09-11 15:38:42,725 - backend.app.vision_learning_engine - INFO - Sistema de vision confirma: tabla con datos reales
+2025-09-11 15:38:42,726 - backend.app.scraper - INFO - ML CONFIRMA: Tabla completamente cargada con datos reales
+2025-09-11 15:38:42,726 - backend.app.scraper - INFO -    El sistema visual verifico que no hay placeholders
+2025-09-11 15:38:42,733 - backend.app.scraper - INFO - 📊 Tabla encontrada con selector: //table[contains(@class, 'table')]
+2025-09-11 15:38:42,734 - backend.app.scraper - INFO - 🔍 ML realizando validación final de contenido...
+2025-09-11 15:38:42,734 - backend.app.scraper - WARNING - ⚠️ Error en validación ML final: 'VisionLearner' object has no attribute 'capture_visual_state'
+2025-09-11 15:38:42,826 - backend.app.scraper - INFO - 📋 Encabezados encontrados: ['Agencia', 'Ventas', 'Premios', 'Premios Pagados', 'Balance', 'Total General', '$294,042.00', '$317,181.00', '$206,675.00', '-$23,139.00']
+2025-09-11 15:38:42,834 - backend.app.scraper - INFO - 📊 Encontradas 20 filas de datos
+2025-09-11 15:38:43,352 - backend.app.scraper - INFO - 🧠 ML - ANÁLISIS FINAL DE DATOS:
+2025-09-11 15:38:43,352 - backend.app.scraper - INFO -    📊 Datos reales detectados: 69
+2025-09-11 15:38:43,353 - backend.app.scraper - INFO -    🔲 Placeholders detectados: 31
+2025-09-11 15:38:43,353 - backend.app.scraper - INFO -    📈 Calidad de datos: 69.0%
+2025-09-11 15:38:43,353 - backend.app.scraper - WARNING - ⚠️ 📊 ML ADVIERTE: Calidad media - algunos placeholders
+2025-09-11 15:38:43,354 - backend.app.scraper - INFO - 📈 Extraídos 20 registros de datos
+2025-09-11 15:38:43,354 - backend.app.scraper - INFO - 📋 Muestra de datos extraídos: [{'agency_code': 'Total Gene', 'agency_name': 'Total General', 'sales': 294042.0, 'prizes': 317181.0, 'prizes_paid': 206675.0, 'balance': -23139.0, 'capture_time': datetime.datetime(2025, 9, 11, 15, 38, 42, 862705)}, {'agency_code': '011109', 'agency_name': '8026 | JAMAICA/RIFEROS(8851)', 'sales': 31528.0, 'prizes': 120696.0, 'prizes_paid': 4376.0, 'balance': -89168.0, 'capture_time': datetime.datetime(2025, 9, 11, 15, 38, 42, 887324)}]
+2025-09-11 15:38:43,354 - backend.app.scraper - INFO - ✓ Datos extraídos para CHANCE EXPRESS: 20 registros
+2025-09-11 15:38:43,354 - backend.app.scraper - INFO - ✅ CHANCE EXPRESS: 20 registros obtenidos
+2025-09-11 15:38:43,355 - backend.app.scraper - INFO - 🔄 Cambiando a RULETA EXPRESS...
+2025-09-11 15:38:43,355 - backend.app.scraper - INFO - 🎯 Seleccionando RULETA EXPRESS en dropdown...
+2025-09-11 15:38:43,355 - backend.app.scraper - INFO - Cambiando dropdown Lotería a RULETA EXPRESS...
+2025-09-11 15:38:43,614 - backend.app.scraper - INFO - Usando icono de flecha
+2025-09-11 15:38:44,194 - backend.app.scraper - INFO - Encontradas 720 opciones de lotería
+2025-09-11 15:38:47,030 - backend.app.scraper - INFO - Opciones válidas encontradas: 9
+2025-09-11 15:38:47,030 - backend.app.scraper - INFO - Evaluando: 'Todos'
+2025-09-11 15:38:47,031 - backend.app.scraper - INFO - Evaluando: 'CHANCE EXPRESS'
+2025-09-11 15:38:47,031 - backend.app.scraper - INFO - Evaluando: 'CHANCE EXPRESS EXTRAORDINARIO'
+2025-09-11 15:38:47,031 - backend.app.scraper - INFO - Evaluando: 'LOTTO'
+2025-09-11 15:38:47,032 - backend.app.scraper - INFO - Evaluando: 'MEGA CHANCE'
+2025-09-11 15:38:47,032 - backend.app.scraper - INFO - Evaluando: 'REPARTIDERA'
+2025-09-11 15:38:47,032 - backend.app.scraper - INFO - Evaluando: 'REPARTIDERA T3'
+2025-09-11 15:38:47,032 - backend.app.scraper - INFO - Evaluando: 'RULETA EXPRESS'
+2025-09-11 15:38:47,032 - backend.app.scraper - INFO - ✅ Seleccionando RULETA EXPRESS: RULETA EXPRESS
+2025-09-11 15:38:47,372 - backend.app.scraper - INFO - ✅ Lotería cambiada a RULETA EXPRESS
+2025-09-11 15:38:47,372 - backend.app.scraper - INFO - ✓ Dropdown cambiado a RULETA EXPRESS
+2025-09-11 15:38:47,378 - backend.app.scraper - INFO - Ejecutando búsqueda...
+2025-09-11 15:38:47,399 - backend.app.scraper - INFO - Botón encontrado con selector: //a[contains(@class, 'btn-primary') and contains(text(), 'Buscar')]
+2025-09-11 15:38:47,405 - backend.app.scraper - INFO - Haciendo clic en botón de búsqueda...
+2025-09-11 15:38:47,426 - backend.app.scraper - INFO - ✓ Clic ejecutado en botón de búsqueda
+2025-09-11 15:38:49,427 - backend.app.scraper - INFO - Esperando resultados de búsqueda...
+2025-09-11 15:38:49,427 - backend.app.scraper - INFO - Esperando carga de tabla (optimizado)...
+2025-09-11 15:38:49,458 - backend.app.scraper - INFO - Tabla encontrada
+2025-09-11 15:38:54,538 - backend.app.scraper - INFO - Loaders desaparecidos
+2025-09-11 15:38:54,552 - backend.app.scraper - INFO - Filas con datos encontradas
+2025-09-11 15:38:55,577 - backend.app.scraper - INFO - Tabla estable con 19 filas
+2025-09-11 15:38:55,577 - backend.app.scraper - INFO - Búsqueda ejecutada exitosamente
+2025-09-11 15:38:55,577 - backend.app.scraper - INFO - ✓ Búsqueda ejecutada para RULETA EXPRESS
+2025-09-11 15:38:55,578 - backend.app.scraper - INFO - ⏳ Esperando carga de tabla para RULETA EXPRESS...
+2025-09-11 15:38:55,578 - backend.app.scraper - INFO - Esperando carga de tabla (optimizado)...
+2025-09-11 15:38:55,591 - backend.app.scraper - INFO - Tabla encontrada
+2025-09-11 15:39:00,662 - backend.app.scraper - INFO - Loaders desaparecidos
+2025-09-11 15:39:00,690 - backend.app.scraper - INFO - Filas con datos encontradas
+2025-09-11 15:39:01,712 - backend.app.scraper - INFO - Tabla estable con 19 filas
+2025-09-11 15:39:01,712 - backend.app.scraper - INFO - ✅ Tabla cargada para RULETA EXPRESS
+2025-09-11 15:39:03,718 - backend.app.scraper - INFO - Extrayendo datos de la tabla...
+2025-09-11 15:39:03,718 - backend.app.scraper - INFO - Solicitando confirmacion visual de ML para carga completa...
+2025-09-11 15:39:03,749 - backend.app.vision_learning_engine - INFO - Sistema de vision confirma: tabla con datos reales
+2025-09-11 15:39:03,749 - backend.app.scraper - INFO - ML CONFIRMA: Tabla completamente cargada con datos reales
+2025-09-11 15:39:03,749 - backend.app.scraper - INFO -    El sistema visual verifico que no hay placeholders
+2025-09-11 15:39:03,757 - backend.app.scraper - INFO - 📊 Tabla encontrada con selector: //table[contains(@class, 'table')]
+2025-09-11 15:39:03,757 - backend.app.scraper - INFO - 🔍 ML realizando validación final de contenido...
+2025-09-11 15:39:03,757 - backend.app.scraper - WARNING - ⚠️ Error en validación ML final: 'VisionLearner' object has no attribute 'capture_visual_state'
+2025-09-11 15:39:03,849 - backend.app.scraper - INFO - 📋 Encabezados encontrados: ['Agencia', 'Ventas', 'Premios', 'Premios Pagados', 'Balance', 'Total General', '$70,155.00', '$55,000.00', '$55,000.00', '$15,155.00']
+2025-09-11 15:39:03,856 - backend.app.scraper - INFO - 📊 Encontradas 4 filas de datos
+2025-09-11 15:39:03,955 - backend.app.scraper - INFO - 🧠 ML - ANÁLISIS FINAL DE DATOS:
+2025-09-11 15:39:03,955 - backend.app.scraper - INFO -    📊 Datos reales detectados: 7
+2025-09-11 15:39:03,956 - backend.app.scraper - INFO -    🔲 Placeholders detectados: 13
+2025-09-11 15:39:03,956 - backend.app.scraper - INFO -    📈 Calidad de datos: 35.0%
+2025-09-11 15:39:03,956 - backend.app.scraper - ERROR - ❌ 🚨 ML ALERTA: Calidad baja - mayoría placeholders
+2025-09-11 15:39:03,956 - backend.app.scraper - ERROR -    💡 Esto confirma el problema original detectado
+2025-09-11 15:39:03,957 - backend.app.scraper - INFO - 📈 Extraídos 4 registros de datos
+2025-09-11 15:39:03,957 - backend.app.scraper - INFO - 📋 Muestra de datos extraídos: [{'agency_code': 'Total Gene', 'agency_name': 'Total General', 'sales': 70155.0, 'prizes': 55000.0, 'prizes_paid': 55000.0, 'balance': 15155.0, 'capture_time': datetime.datetime(2025, 9, 11, 15, 39, 3, 881567)}, {'agency_code': '6011184', 'agency_name': '7041 | SAJOMA PROPIO(9365)', 'sales': 30180.0, 'prizes': 18450.0, 'prizes_paid': 18450.0, 'balance': 11730.0, 'capture_time': datetime.datetime(2025, 9, 11, 15, 39, 3, 905823)}]
+2025-09-11 15:39:03,957 - backend.app.scraper - INFO - ✓ Datos extraídos para RULETA EXPRESS: 4 registros
+2025-09-11 15:39:03,957 - backend.app.scraper - INFO - ✅ RULETA EXPRESS: 4 registros obtenidos
+2025-09-11 15:39:03,957 - backend.app.scraper - INFO - 🎉 MONITOREO DUAL COMPLETADO:
+2025-09-11 15:39:03,958 - backend.app.scraper - INFO -    📊 CHANCE EXPRESS: 20 registros
+2025-09-11 15:39:03,958 - backend.app.scraper - INFO -    🎰 RULETA EXPRESS: 4 registros
+2025-09-11 15:39:03,958 - backend.app.scraper - INFO -    📈 TOTAL: 24 registros
+2025-09-11 15:39:03,958 - backend.app.scraper - INFO - 🧹 Iniciando limpieza automática del driver...
+2025-09-11 15:39:06,959 - backend.app.scraper - INFO - Sistema de vision activo: False
+2025-09-11 15:39:06,959 - backend.app.scraper - INFO - 🧹 Iniciando limpieza segura del driver...
+2025-09-11 15:39:09,097 - backend.app.scraper - INFO - ✅ Driver cerrado correctamente
+2025-09-11 15:39:09,097 - backend.app.scraper - INFO - Driver cerrado automaticamente
+2025-09-11 15:39:11,101 - backend.app.agency_matcher - INFO - Cargando datos de agencias desde DataAgencias.xlsx
+2025-09-11 15:39:11,274 - backend.app.agency_matcher - INFO - Grupos SURIEL identificados: 14
+2025-09-11 15:39:11,274 - backend.app.agency_matcher - INFO -   - 150-SURIEL | GRUPO 1
+2025-09-11 15:39:11,275 - backend.app.agency_matcher - INFO -   - 151-SURIEL | GRUPO 2
+2025-09-11 15:39:11,275 - backend.app.agency_matcher - INFO -   - 152-SURIEL | GRUPO 3
+2025-09-11 15:39:11,276 - backend.app.agency_matcher - INFO -   - 153-SURIEL | GRUPO 4
+2025-09-11 15:39:11,276 - backend.app.agency_matcher - INFO -   - 154-SURIEL | GRUPO 5
+2025-09-11 15:39:11,276 - backend.app.agency_matcher - INFO -   - 155-SURIEL | GRUPO 6
+2025-09-11 15:39:11,276 - backend.app.agency_matcher - INFO -   - 161-SURIEL | GRUPO 13
+2025-09-11 15:39:11,277 - backend.app.agency_matcher - INFO -   - 184-SURIEL | GRUPO 11
+2025-09-11 15:39:11,277 - backend.app.agency_matcher - INFO -   - 185-SURIEL | GRUPO 16 SANTO DOMINGO
+2025-09-11 15:39:11,277 - backend.app.agency_matcher - INFO -   - 186-SURIEL | GRUPO 17 CARMEN M .
+2025-09-11 15:39:11,277 - backend.app.agency_matcher - INFO -   - 192-SURIEL | GRUPO 18
+2025-09-11 15:39:11,278 - backend.app.agency_matcher - INFO -   - 198-SURIEL | GRUPO 19. H.
+2025-09-11 15:39:11,278 - backend.app.agency_matcher - INFO -   - 206-GRUPO 20 EL CONVENTO SURIEL
+2025-09-11 15:39:11,278 - backend.app.agency_matcher - INFO -   - 211-SURIEL | GRUPO 7 CORALITOS
+2025-09-11 15:39:11,279 - backend.app.agency_matcher - INFO - Terminales cargadas: 3513 total, 3195 NO-SURIEL
+2025-09-11 15:39:11,696 - backend.app.agency_matcher - INFO - Datos guardados en agencies_data.json
+2025-09-11 15:39:11,696 - backend.app.alerts - INFO - Procesando lote 1: 24 agencias
+2025-09-11 15:39:11,697 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: Total Gene - Total General (CHANCE_EXPRESS)
+2025-09-11 15:39:11,714 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 610105 - SURIEL 10-105 CONSTANZA/GRUPO 1(9491) (CHANCE_EXPRESS)
+2025-09-11 15:39:11,714 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 61041 - SURIEL 10-41 CONSTANZA/GRUPO 1(10022) (CHANCE_EXPRESS)
+2025-09-11 15:39:11,714 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 1038 - SURIEL 10-38 CONSTANZA/GRUPO 1(10025) (CHANCE_EXPRESS)
+2025-09-11 15:39:11,714 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 60142 - SURIEL 10-142 CONSTANZA/GRUPO 1(21530) (CHANCE_EXPRESS)
+2025-09-11 15:39:11,715 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 4019 - SURIEL 40-19 CONSTANZA/GRUPO 4(10081) (CHANCE_EXPRESS)
+2025-09-11 15:39:11,715 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 011565 - SURIEL 40-30 CONSTANZA/GRUPO 4(10667) (CHANCE_EXPRESS)
+2025-09-11 15:39:11,740 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: Total Gene - Total General (RULETA_EXPRESS)
+2025-09-11 15:39:11,779 - backend.app.scheduler_hybrid - INFO - ✅ Iteración clásica completada: 24 agencias, 5 alertas en 82.40s
+2025-09-11 15:39:11,779 - root - INFO - PID: 13940 - Proceso de monitoreo finalizado.
+2025-09-11 16:21:47,403 - root - INFO - ExpressATM detenido
+2025-09-11 16:43:43,456 - backend.app.vision_learning_engine - INFO - Vision Learning Engine inicializado (modo básico)
+2025-09-11 16:43:43,456 - backend.app.scraper - INFO - Sistema de vision + ML disponible
+2025-09-11 16:43:43,457 - backend.app.scraper_intelligent - INFO - Intelligent Scraper inicializado (modo básico)
+2025-09-11 16:43:43,462 - backend.app.intelligence - WARNING - No hay datos historicos suficientes
+2025-09-11 16:43:43,471 - backend.app.scheduler_hybrid - INFO - Scheduler hibrido inicializado (scrapers lazy)
+2025-09-11 16:43:43,619 - root - INFO - ExpressATM iniciado
+2025-09-11 16:43:43,619 - root - INFO - Dashboard disponible
+2025-09-11 16:43:43,620 - root - INFO - Documentacion API disponible
+2025-09-11 16:43:54,288 - backend.app.scheduler_hybrid - INFO - 🔄 Iniciando iteración manual asíncrona (no bloqueante)...
+2025-09-11 16:43:54,288 - backend.app.scheduler_hybrid - INFO - 🔄 INICIANDO ITERACIÓN AUTOMÁTICA PROGRAMADA
+2025-09-11 16:43:54,289 - backend.app.scheduler_hybrid - INFO - 🔄 Ejecutando iteración clásica automática
+2025-09-11 16:43:54,289 - backend.app.scheduler_hybrid - INFO - 🔄 Ejecutando iteración clásica...
+2025-09-11 16:43:54,289 - backend.app.scheduler_hybrid - INFO - 🔄 Inicializando scraper clásico...
+2025-09-11 16:43:55,299 - backend.app.dom_learning_engine - ERROR - Error analizando tendencia de rendimiento: no such table: monitoring_sessions
+2025-09-11 16:43:55,299 - backend.app.scraper - INFO - Sistema de vision + ML disponible
+2025-09-11 16:43:55,300 - backend.app.scraper - WARNING - Driver inactivo en intento 1, reinicializando...
+2025-09-11 16:43:55,300 - backend.app.scraper - INFO - Reinicializando driver...
+2025-09-11 16:43:56,464 - backend.app.scraper - INFO - 🖥️ Ventana posicionada en monitor principal y maximizada
+2025-09-11 16:43:56,466 - backend.app.vision_learning_engine - INFO - Driver configurado en sistema de vision
+2025-09-11 16:43:56,466 - backend.app.scraper - INFO - Driver registrado en sistema de vision
+2025-09-11 16:43:56,466 - backend.app.scraper - INFO - Driver de Chrome configurado con configuración optimizada para velocidad y pantalla
+2025-09-11 16:43:56,467 - backend.app.scraper - INFO - Driver reinicializado exitosamente
+2025-09-11 16:43:56,467 - backend.app.scraper - INFO - 🎯 Iniciando proceso de MONITOREO DUAL (sesión única)...
+2025-09-11 16:43:56,467 - backend.app.scraper - INFO -    📊 Lotería 1: CHANCE EXPRESS
+2025-09-11 16:43:56,467 - backend.app.scraper - INFO -    🎰 Lotería 2: RULETA EXPRESS
+2025-09-11 16:43:56,470 - backend.app.scraper - INFO - Iniciando proceso de login...
+2025-09-11 16:44:01,170 - backend.app.scraper - ERROR - Error durante login: ('Connection aborted.', ConnectionResetError(10054, 'Se ha forzado la interrupción de una conexión existente por el host remoto', None, 10054, None))
+2025-09-11 16:44:01,171 - backend.app.scraper - ERROR - ✗ Error en login
+2025-09-11 16:44:01,171 - backend.app.scraper - INFO - 🧹 Iniciando limpieza automática del driver...
+2025-09-11 16:44:01,322 - root - INFO - ExpressATM detenido
+2025-09-11 19:27:55,633 - backend.app.vision_learning_engine - INFO - Vision Learning Engine inicializado (modo básico)
+2025-09-11 19:27:55,633 - backend.app.scraper - INFO - Sistema de vision + ML disponible
+2025-09-11 19:27:55,634 - backend.app.scraper_intelligent - INFO - Intelligent Scraper inicializado (modo básico)
+2025-09-11 19:27:55,640 - backend.app.intelligence - WARNING - No hay datos historicos suficientes
+2025-09-11 19:27:55,643 - backend.app.scheduler_hybrid - INFO - Scheduler hibrido inicializado (scrapers lazy)
+2025-09-11 19:27:55,790 - root - INFO - ExpressATM iniciado
+2025-09-11 19:27:55,791 - root - INFO - Dashboard disponible
+2025-09-11 19:27:55,791 - root - INFO - Documentacion API disponible
+2025-09-11 19:31:27,485 - backend.app.vision_learning_engine - INFO - Vision Learning Engine inicializado (modo básico)
+2025-09-11 19:31:27,485 - backend.app.scraper - INFO - Sistema de vision + ML disponible
+2025-09-11 19:31:27,485 - backend.app.scraper_intelligent - INFO - Intelligent Scraper inicializado (modo básico)
+2025-09-11 19:31:27,501 - backend.app.intelligence - WARNING - No hay datos historicos suficientes
+2025-09-11 19:31:27,504 - backend.app.scheduler_hybrid - INFO - Scheduler hibrido inicializado (scrapers lazy)
+2025-09-11 19:31:27,636 - root - INFO - ExpressATM iniciado
+2025-09-11 19:31:27,636 - root - INFO - Dashboard disponible
+2025-09-11 19:31:27,636 - root - INFO - Documentacion API disponible
+2025-09-11 20:16:39,885 - root - INFO - ExpressATM detenido
+2025-09-11 20:17:14,841 - backend.app.vision_learning_engine - INFO - Vision Learning Engine inicializado (modo básico)
+2025-09-11 20:17:14,841 - backend.app.scraper - INFO - Sistema de vision + ML disponible
+2025-09-11 20:17:14,841 - backend.app.scraper_intelligent - INFO - Intelligent Scraper inicializado (modo básico)
+2025-09-11 20:17:14,841 - backend.app.intelligence - WARNING - No hay datos historicos suficientes
+2025-09-11 20:17:14,856 - backend.app.scheduler_hybrid - INFO - Scheduler hibrido inicializado (scrapers lazy)
+2025-09-11 20:17:14,991 - root - INFO - ExpressATM iniciado
+2025-09-11 20:17:14,991 - root - INFO - Dashboard disponible
+2025-09-11 20:17:14,991 - root - INFO - Documentacion API disponible
+2025-09-11 20:24:22,403 - backend.app.vision_learning_engine - INFO - Vision Learning Engine inicializado (modo básico)
+2025-09-11 20:24:22,404 - backend.app.scraper - INFO - Sistema de vision + ML disponible
+2025-09-11 20:24:22,405 - backend.app.scraper_intelligent - INFO - Intelligent Scraper inicializado (modo básico)
+2025-09-11 20:24:22,409 - backend.app.intelligence - WARNING - No hay datos historicos suficientes
+2025-09-11 20:24:22,413 - backend.app.scheduler_hybrid - INFO - Scheduler hibrido inicializado (scrapers lazy)
+2025-09-11 20:24:22,575 - root - INFO - ExpressATM iniciado
+2025-09-11 20:24:22,575 - root - INFO - Dashboard disponible
+2025-09-11 20:24:22,575 - root - INFO - Documentacion API disponible
+2025-09-11 20:24:42,992 - root - INFO - ExpressATM detenido
+2025-09-11 20:25:46,206 - backend.app.vision_learning_engine - INFO - Vision Learning Engine inicializado (modo básico)
+2025-09-11 20:25:46,206 - backend.app.scraper - INFO - Sistema de vision + ML disponible
+2025-09-11 20:25:46,207 - backend.app.scraper_intelligent - INFO - Intelligent Scraper inicializado (modo básico)
+2025-09-11 20:25:46,211 - backend.app.intelligence - WARNING - No hay datos historicos suficientes
+2025-09-11 20:25:46,215 - backend.app.scheduler_hybrid - INFO - Scheduler hibrido inicializado (scrapers lazy)
+2025-09-11 20:25:46,311 - root - INFO - ExpressATM iniciado
+2025-09-11 20:25:46,312 - root - INFO - Dashboard disponible
+2025-09-11 20:25:46,312 - root - INFO - Documentacion API disponible
+2025-09-11 20:25:56,658 - backend.app.scheduler_hybrid - INFO - 🔄 Iniciando iteración manual asíncrona (no bloqueante)...
+2025-09-11 20:25:56,659 - backend.app.scheduler_hybrid - INFO - 🔄 INICIANDO ITERACIÓN AUTOMÁTICA PROGRAMADA
+2025-09-11 20:25:56,660 - backend.app.scheduler_hybrid - INFO - 🔄 Ejecutando iteración clásica automática
+2025-09-11 20:25:56,660 - backend.app.scheduler_hybrid - INFO - 🔄 Ejecutando iteración clásica...
+2025-09-11 20:25:56,660 - backend.app.scheduler_hybrid - INFO - 🔄 Inicializando scraper clásico...
+2025-09-11 20:25:57,670 - backend.app.dom_learning_engine - ERROR - Error analizando tendencia de rendimiento: no such table: monitoring_sessions
+2025-09-11 20:25:57,671 - backend.app.scraper - INFO - Sistema de vision + ML disponible
+2025-09-11 20:25:57,671 - backend.app.scraper - WARNING - Driver inactivo en intento 1, reinicializando...
+2025-09-11 20:25:57,671 - backend.app.scraper - INFO - Reinicializando driver...
+2025-09-11 20:25:58,897 - backend.app.scraper - INFO - 🖥️ Ventana posicionada en monitor principal y maximizada
+2025-09-11 20:25:58,900 - backend.app.vision_learning_engine - INFO - Driver configurado en sistema de vision
+2025-09-11 20:25:58,901 - backend.app.scraper - INFO - Driver registrado en sistema de vision
+2025-09-11 20:25:58,901 - backend.app.scraper - INFO - Driver de Chrome configurado con configuración optimizada para velocidad y pantalla
+2025-09-11 20:25:58,901 - backend.app.scraper - INFO - Driver reinicializado exitosamente
+2025-09-11 20:25:58,902 - backend.app.scraper - INFO - 🎯 Iniciando proceso de MONITOREO DUAL (sesión única)...
+2025-09-11 20:25:58,902 - backend.app.scraper - INFO -    📊 Lotería 1: CHANCE EXPRESS
+2025-09-11 20:25:58,902 - backend.app.scraper - INFO -    🎰 Lotería 2: RULETA EXPRESS
+2025-09-11 20:25:58,910 - backend.app.scraper - INFO - Iniciando proceso de login...
+2025-09-11 20:26:29,073 - backend.app.scraper - INFO - ✓ Usuario ingresado
+2025-09-11 20:26:29,137 - backend.app.scraper - INFO - ✓ Contraseña ingresada
+2025-09-11 20:26:29,484 - backend.app.scraper - INFO - ✓ Click normal en botón login
+2025-09-11 20:26:29,949 - backend.app.scraper - INFO - Login exitoso - Menú lateral cargado
+2025-09-11 20:26:31,949 - backend.app.scraper - INFO - ✓ Login exitoso
+2025-09-11 20:26:31,956 - backend.app.scraper - INFO - Navegando a Monitor de Ventas...
+2025-09-11 20:26:32,494 - backend.app.scraper - INFO - 🎯 Botón Monitoreo encontrado, expandiendo...
+2025-09-11 20:26:32,536 - backend.app.scraper - INFO - ✅ Click normal exitoso en Monitoreo
+2025-09-11 20:26:34,037 - backend.app.scraper - INFO - ✅ Menú Monitoreo expandido
+2025-09-11 20:26:34,046 - backend.app.scraper - INFO - ✅ Enlace Monitor de Ventas encontrado
+2025-09-11 20:26:35,384 - backend.app.scraper - INFO - ✅ Click normal exitoso en Monitor de Ventas
+2025-09-11 20:26:35,384 - backend.app.scraper - INFO - 🔍 Verificando carga de página del Monitor...
+2025-09-11 20:26:35,384 - backend.app.scraper - INFO - 🔍 Verificando carga de página del Monitor...
+2025-09-11 20:26:45,914 - backend.app.scraper - WARNING - ⏱️ Timeout esperando elementos, verificando URL...
+2025-09-11 20:26:45,919 - backend.app.scraper - INFO - ✅ Estamos en Monitor.aspx - navegación exitosa por URL
+2025-09-11 20:26:45,920 - backend.app.scraper - INFO - ✓ Navegación exitosa
+2025-09-11 20:26:45,923 - backend.app.scraper - INFO - Configurando filtros base...
+2025-09-11 20:26:45,923 - backend.app.scraper - INFO - 🔄 Configurando filtros base con Selenium...
+2025-09-11 20:26:46,409 - backend.app.scraper - INFO - ✅ 1. Tipo Lotería: No tradicionales
+2025-09-11 20:26:48,931 - backend.app.scraper - INFO - ✅ 2. Filtro: Ventas Mayor o Igual a
+2025-09-11 20:26:49,567 - backend.app.scraper - INFO - ✅ 3. Monto: 10000
+2025-09-11 20:26:49,567 - backend.app.scraper - INFO - ✅ Filtros base configurados con Selenium
+2025-09-11 20:26:49,568 - backend.app.scraper - INFO - ✓ Filtros base configurados
+2025-09-11 20:26:49,568 - backend.app.scraper - INFO - 🔄 Procesando CHANCE EXPRESS...
+2025-09-11 20:26:49,568 - backend.app.scraper - INFO - 🎯 Seleccionando CHANCE EXPRESS en dropdown...
+2025-09-11 20:26:49,568 - backend.app.scraper - INFO - Cambiando dropdown Lotería a CHANCE EXPRESS...
+2025-09-11 20:26:49,832 - backend.app.scraper - INFO - Usando icono de flecha
+2025-09-11 20:26:50,402 - backend.app.scraper - INFO - Encontradas 718 opciones de lotería
+2025-09-11 20:26:53,207 - backend.app.scraper - INFO - Opciones válidas encontradas: 9
+2025-09-11 20:26:53,207 - backend.app.scraper - INFO - Evaluando: 'Todos'
+2025-09-11 20:26:53,207 - backend.app.scraper - INFO - Evaluando: 'CHANCE EXPRESS'
+2025-09-11 20:26:53,207 - backend.app.scraper - INFO - ✅ Seleccionando CHANCE EXPRESS: CHANCE EXPRESS
+2025-09-11 20:26:53,560 - backend.app.scraper - INFO - ✅ Lotería cambiada a CHANCE EXPRESS
+2025-09-11 20:26:53,561 - backend.app.scraper - INFO - ✓ Dropdown cambiado a CHANCE EXPRESS
+2025-09-11 20:26:53,575 - backend.app.scraper - INFO - Ejecutando búsqueda...
+2025-09-11 20:26:53,594 - backend.app.scraper - INFO - Botón encontrado con selector: //a[contains(@class, 'btn-primary') and contains(text(), 'Buscar')]
+2025-09-11 20:26:53,602 - backend.app.scraper - INFO - Haciendo clic en botón de búsqueda...
+2025-09-11 20:26:53,614 - backend.app.scraper - INFO - ✓ Clic ejecutado en botón de búsqueda
+2025-09-11 20:26:55,615 - backend.app.scraper - INFO - Esperando resultados de búsqueda...
+2025-09-11 20:26:55,616 - backend.app.scraper - INFO - Esperando carga de tabla (optimizado)...
+2025-09-11 20:26:55,625 - backend.app.scraper - INFO - Tabla encontrada
+2025-09-11 20:27:05,298 - backend.app.scraper - INFO - Loaders desaparecidos
+2025-09-11 20:27:05,315 - backend.app.scraper - INFO - Filas con datos encontradas
+2025-09-11 20:27:06,349 - backend.app.scraper - INFO - Tabla estable con 50 filas
+2025-09-11 20:27:06,349 - backend.app.scraper - INFO - Búsqueda ejecutada exitosamente
+2025-09-11 20:27:06,349 - backend.app.scraper - INFO - ✓ Búsqueda ejecutada para CHANCE EXPRESS
+2025-09-11 20:27:06,350 - backend.app.scraper - INFO - ⏳ Esperando carga de tabla para CHANCE EXPRESS...
+2025-09-11 20:27:06,350 - backend.app.scraper - INFO - Esperando carga de tabla (optimizado)...
+2025-09-11 20:27:06,358 - backend.app.scraper - INFO - Tabla encontrada
+2025-09-11 20:27:11,400 - backend.app.scraper - INFO - Loaders desaparecidos
+2025-09-11 20:27:11,407 - backend.app.scraper - INFO - Filas con datos encontradas
+2025-09-11 20:27:12,426 - backend.app.scraper - INFO - Tabla estable con 50 filas
+2025-09-11 20:27:12,426 - backend.app.scraper - INFO - ✅ Tabla cargada para CHANCE EXPRESS
+2025-09-11 20:27:14,429 - backend.app.scraper - INFO - Extrayendo datos de la tabla...
+2025-09-11 20:27:14,429 - backend.app.scraper - INFO - Solicitando confirmacion visual de ML para carga completa...
+2025-09-11 20:27:14,459 - backend.app.vision_learning_engine - INFO - Sistema de vision confirma: tabla con datos reales
+2025-09-11 20:27:14,459 - backend.app.scraper - INFO - ML CONFIRMA: Tabla completamente cargada con datos reales
+2025-09-11 20:27:14,459 - backend.app.scraper - INFO -    El sistema visual verifico que no hay placeholders
+2025-09-11 20:27:14,467 - backend.app.scraper - INFO - 📊 Tabla encontrada con selector: //table[contains(@class, 'table')]
+2025-09-11 20:27:14,467 - backend.app.scraper - INFO - 🔍 ML realizando validación final de contenido...
+2025-09-11 20:27:14,467 - backend.app.scraper - WARNING - ⚠️ Error en validación ML final: 'VisionLearner' object has no attribute 'capture_visual_state'
+2025-09-11 20:27:14,573 - backend.app.scraper - INFO - 📋 Encabezados encontrados: ['Agencia', 'Ventas', 'Premios', 'Premios Pagados', 'Balance', 'Total General', '$702,926.00', '$683,689.00', '$559,379.00', '$19,237.00']
+2025-09-11 20:27:14,582 - backend.app.scraper - INFO - 📊 Encontradas 35 filas de datos
+2025-09-11 20:27:15,571 - backend.app.scraper - INFO - 🧠 ML - ANÁLISIS FINAL DE DATOS:
+2025-09-11 20:27:15,571 - backend.app.scraper - INFO -    📊 Datos reales detectados: 133
+2025-09-11 20:27:15,572 - backend.app.scraper - INFO -    🔲 Placeholders detectados: 42
+2025-09-11 20:27:15,572 - backend.app.scraper - INFO -    📈 Calidad de datos: 76.0%
+2025-09-11 20:27:15,572 - backend.app.scraper - WARNING - ⚠️ 📊 ML ADVIERTE: Calidad media - algunos placeholders
+2025-09-11 20:27:15,572 - backend.app.scraper - INFO - 📈 Extraídos 35 registros de datos
+2025-09-11 20:27:15,572 - backend.app.scraper - INFO - 📋 Muestra de datos extraídos: [{'agency_code': 'Total Gene', 'agency_name': 'Total General', 'sales': 702926.0, 'prizes': 683689.0, 'prizes_paid': 559379.0, 'balance': 19237.0, 'capture_time': datetime.datetime(2025, 9, 11, 20, 27, 14, 613456)}, {'agency_code': '011109', 'agency_name': '8026 | JAMAICA/RIFEROS(8851)', 'sales': 58228.0, 'prizes': 152436.0, 'prizes_paid': 61036.0, 'balance': -94208.0, 'capture_time': datetime.datetime(2025, 9, 11, 20, 27, 14, 640380)}]
+2025-09-11 20:27:15,572 - backend.app.scraper - INFO - ✓ Datos extraídos para CHANCE EXPRESS: 35 registros
+2025-09-11 20:27:15,573 - backend.app.scraper - INFO - ✅ CHANCE EXPRESS: 35 registros obtenidos
+2025-09-11 20:27:15,573 - backend.app.scraper - INFO - 🔄 Cambiando a RULETA EXPRESS...
+2025-09-11 20:27:15,573 - backend.app.scraper - INFO - 🎯 Seleccionando RULETA EXPRESS en dropdown...
+2025-09-11 20:27:15,573 - backend.app.scraper - INFO - Cambiando dropdown Lotería a RULETA EXPRESS...
+2025-09-11 20:27:15,879 - backend.app.scraper - INFO - Usando icono de flecha
+2025-09-11 20:27:16,464 - backend.app.scraper - INFO - Encontradas 720 opciones de lotería
+2025-09-11 20:27:19,480 - backend.app.scraper - INFO - Opciones válidas encontradas: 9
+2025-09-11 20:27:19,481 - backend.app.scraper - INFO - Evaluando: 'Todos'
+2025-09-11 20:27:19,481 - backend.app.scraper - INFO - Evaluando: 'CHANCE EXPRESS'
+2025-09-11 20:27:19,481 - backend.app.scraper - INFO - Evaluando: 'CHANCE EXPRESS EXTRAORDINARIO'
+2025-09-11 20:27:19,481 - backend.app.scraper - INFO - Evaluando: 'LOTTO'
+2025-09-11 20:27:19,481 - backend.app.scraper - INFO - Evaluando: 'MEGA CHANCE'
+2025-09-11 20:27:19,481 - backend.app.scraper - INFO - Evaluando: 'REPARTIDERA'
+2025-09-11 20:27:19,481 - backend.app.scraper - INFO - Evaluando: 'REPARTIDERA T3'
+2025-09-11 20:27:19,482 - backend.app.scraper - INFO - Evaluando: 'RULETA EXPRESS'
+2025-09-11 20:27:19,482 - backend.app.scraper - INFO - ✅ Seleccionando RULETA EXPRESS: RULETA EXPRESS
+2025-09-11 20:27:19,822 - backend.app.scraper - INFO - ✅ Lotería cambiada a RULETA EXPRESS
+2025-09-11 20:27:19,822 - backend.app.scraper - INFO - ✓ Dropdown cambiado a RULETA EXPRESS
+2025-09-11 20:27:19,828 - backend.app.scraper - INFO - Ejecutando búsqueda...
+2025-09-11 20:27:19,847 - backend.app.scraper - INFO - Botón encontrado con selector: //a[contains(@class, 'btn-primary') and contains(text(), 'Buscar')]
+2025-09-11 20:27:19,854 - backend.app.scraper - INFO - Haciendo clic en botón de búsqueda...
+2025-09-11 20:27:19,878 - backend.app.scraper - INFO - ✓ Clic ejecutado en botón de búsqueda
+2025-09-11 20:27:21,879 - backend.app.scraper - INFO - Esperando resultados de búsqueda...
+2025-09-11 20:27:21,880 - backend.app.scraper - INFO - Esperando carga de tabla (optimizado)...
+2025-09-11 20:27:21,906 - backend.app.scraper - INFO - Tabla encontrada
+2025-09-11 20:27:27,968 - backend.app.scraper - INFO - Loaders desaparecidos
+2025-09-11 20:27:27,976 - backend.app.scraper - INFO - Filas con datos encontradas
+2025-09-11 20:27:28,991 - backend.app.scraper - INFO - Tabla estable con 22 filas
+2025-09-11 20:27:28,991 - backend.app.scraper - INFO - Búsqueda ejecutada exitosamente
+2025-09-11 20:27:28,991 - backend.app.scraper - INFO - ✓ Búsqueda ejecutada para RULETA EXPRESS
+2025-09-11 20:27:28,992 - backend.app.scraper - INFO - ⏳ Esperando carga de tabla para RULETA EXPRESS...
+2025-09-11 20:27:28,992 - backend.app.scraper - INFO - Esperando carga de tabla (optimizado)...
+2025-09-11 20:27:28,999 - backend.app.scraper - INFO - Tabla encontrada
+2025-09-11 20:27:34,050 - backend.app.scraper - INFO - Loaders desaparecidos
+2025-09-11 20:27:34,057 - backend.app.scraper - INFO - Filas con datos encontradas
+2025-09-11 20:27:35,073 - backend.app.scraper - INFO - Tabla estable con 22 filas
+2025-09-11 20:27:35,073 - backend.app.scraper - INFO - ✅ Tabla cargada para RULETA EXPRESS
+2025-09-11 20:27:37,078 - backend.app.scraper - INFO - Extrayendo datos de la tabla...
+2025-09-11 20:27:37,078 - backend.app.scraper - INFO - Solicitando confirmacion visual de ML para carga completa...
+2025-09-11 20:27:37,109 - backend.app.vision_learning_engine - INFO - Sistema de vision confirma: tabla con datos reales
+2025-09-11 20:27:37,110 - backend.app.scraper - INFO - ML CONFIRMA: Tabla completamente cargada con datos reales
+2025-09-11 20:27:37,110 - backend.app.scraper - INFO -    El sistema visual verifico que no hay placeholders
+2025-09-11 20:27:37,118 - backend.app.scraper - INFO - 📊 Tabla encontrada con selector: //table[contains(@class, 'table')]
+2025-09-11 20:27:37,118 - backend.app.scraper - INFO - 🔍 ML realizando validación final de contenido...
+2025-09-11 20:27:37,118 - backend.app.scraper - WARNING - ⚠️ Error en validación ML final: 'VisionLearner' object has no attribute 'capture_visual_state'
+2025-09-11 20:27:37,216 - backend.app.scraper - INFO - 📋 Encabezados encontrados: ['Agencia', 'Ventas', 'Premios', 'Premios Pagados', 'Balance', 'Total General', '$122,440.00', '$105,160.00', '$104,980.00', '$17,280.00']
+2025-09-11 20:27:37,224 - backend.app.scraper - INFO - 📊 Encontradas 7 filas de datos
+2025-09-11 20:27:37,403 - backend.app.scraper - INFO - 🧠 ML - ANÁLISIS FINAL DE DATOS:
+2025-09-11 20:27:37,403 - backend.app.scraper - INFO -    📊 Datos reales detectados: 10
+2025-09-11 20:27:37,403 - backend.app.scraper - INFO -    🔲 Placeholders detectados: 25
+2025-09-11 20:27:37,403 - backend.app.scraper - INFO -    📈 Calidad de datos: 28.6%
+2025-09-11 20:27:37,404 - backend.app.scraper - ERROR - ❌ 🚨 ML ALERTA: Calidad baja - mayoría placeholders
+2025-09-11 20:27:37,404 - backend.app.scraper - ERROR -    💡 Esto confirma el problema original detectado
+2025-09-11 20:27:37,404 - backend.app.scraper - INFO - 📈 Extraídos 7 registros de datos
+2025-09-11 20:27:37,404 - backend.app.scraper - INFO - 📋 Muestra de datos extraídos: [{'agency_code': 'Total Gene', 'agency_name': 'Total General', 'sales': 122440.0, 'prizes': 105160.0, 'prizes_paid': 104980.0, 'balance': 17280.0, 'capture_time': datetime.datetime(2025, 9, 11, 20, 27, 37, 251503)}, {'agency_code': '6132253', 'agency_name': 'SURIEL 10- 190 CONSTANZA/GRUPO 1(12260)', 'sales': 20050.0, 'prizes': 16200.0, 'prizes_paid': 16200.0, 'balance': 3850.0, 'capture_time': datetime.datetime(2025, 9, 11, 20, 27, 37, 279890)}]
+2025-09-11 20:27:37,404 - backend.app.scraper - INFO - ✓ Datos extraídos para RULETA EXPRESS: 7 registros
+2025-09-11 20:27:37,404 - backend.app.scraper - INFO - ✅ RULETA EXPRESS: 7 registros obtenidos
+2025-09-11 20:27:37,404 - backend.app.scraper - INFO - 🎉 MONITOREO DUAL COMPLETADO:
+2025-09-11 20:27:37,405 - backend.app.scraper - INFO -    📊 CHANCE EXPRESS: 35 registros
+2025-09-11 20:27:37,405 - backend.app.scraper - INFO -    🎰 RULETA EXPRESS: 7 registros
+2025-09-11 20:27:37,405 - backend.app.scraper - INFO -    📈 TOTAL: 42 registros
+2025-09-11 20:27:37,405 - backend.app.scraper - INFO - 🧹 Iniciando limpieza automática del driver...
+2025-09-11 20:27:40,406 - backend.app.scraper - INFO - Sistema de vision activo: False
+2025-09-11 20:27:40,407 - backend.app.scraper - INFO - 🧹 Iniciando limpieza segura del driver...
+2025-09-11 20:27:42,543 - backend.app.scraper - INFO - ✅ Driver cerrado correctamente
+2025-09-11 20:27:42,544 - backend.app.scraper - INFO - Driver cerrado automaticamente
+2025-09-11 20:27:44,545 - backend.app.agency_matcher - INFO - Cargando datos de agencias desde DataAgencias.xlsx
+2025-09-11 20:27:44,696 - backend.app.agency_matcher - INFO - Grupos SURIEL identificados: 14
+2025-09-11 20:27:44,696 - backend.app.agency_matcher - INFO -   - 150-SURIEL | GRUPO 1
+2025-09-11 20:27:44,697 - backend.app.agency_matcher - INFO -   - 151-SURIEL | GRUPO 2
+2025-09-11 20:27:44,697 - backend.app.agency_matcher - INFO -   - 152-SURIEL | GRUPO 3
+2025-09-11 20:27:44,697 - backend.app.agency_matcher - INFO -   - 153-SURIEL | GRUPO 4
+2025-09-11 20:27:44,697 - backend.app.agency_matcher - INFO -   - 154-SURIEL | GRUPO 5
+2025-09-11 20:27:44,697 - backend.app.agency_matcher - INFO -   - 155-SURIEL | GRUPO 6
+2025-09-11 20:27:44,697 - backend.app.agency_matcher - INFO -   - 161-SURIEL | GRUPO 13
+2025-09-11 20:27:44,697 - backend.app.agency_matcher - INFO -   - 184-SURIEL | GRUPO 11
+2025-09-11 20:27:44,698 - backend.app.agency_matcher - INFO -   - 185-SURIEL | GRUPO 16 SANTO DOMINGO
+2025-09-11 20:27:44,698 - backend.app.agency_matcher - INFO -   - 186-SURIEL | GRUPO 17 CARMEN M .
+2025-09-11 20:27:44,698 - backend.app.agency_matcher - INFO -   - 192-SURIEL | GRUPO 18
+2025-09-11 20:27:44,698 - backend.app.agency_matcher - INFO -   - 198-SURIEL | GRUPO 19. H.
+2025-09-11 20:27:44,698 - backend.app.agency_matcher - INFO -   - 206-GRUPO 20 EL CONVENTO SURIEL
+2025-09-11 20:27:44,698 - backend.app.agency_matcher - INFO -   - 211-SURIEL | GRUPO 7 CORALITOS
+2025-09-11 20:27:44,699 - backend.app.agency_matcher - INFO - Terminales cargadas: 3513 total, 3195 NO-SURIEL
+2025-09-11 20:27:45,105 - backend.app.agency_matcher - INFO - Datos guardados en agencies_data.json
+2025-09-11 20:27:45,106 - backend.app.alerts - INFO - Procesando lote 1: 42 agencias
+2025-09-11 20:27:45,106 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: Total Gene - Total General (CHANCE_EXPRESS)
+2025-09-11 20:27:45,123 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 610105 - SURIEL 10-105 CONSTANZA/GRUPO 1(9491) (CHANCE_EXPRESS)
+2025-09-11 20:27:45,123 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 1050 - SURIEL 10-50 CONSTANZA/GRUPO 1(10013) (CHANCE_EXPRESS)
+2025-09-11 20:27:45,123 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 61041 - SURIEL 10-41 CONSTANZA/GRUPO 1(10022) (CHANCE_EXPRESS)
+2025-09-11 20:27:45,123 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 1038 - SURIEL 10-38 CONSTANZA/GRUPO 1(10025) (CHANCE_EXPRESS)
+2025-09-11 20:27:45,124 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 61022 - SURIEL 10-22 CONSTANZA/GRUPO 1(10040) (CHANCE_EXPRESS)
+2025-09-11 20:27:45,124 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 60142 - SURIEL 10-142 CONSTANZA/GRUPO 1(21530) (CHANCE_EXPRESS)
+2025-09-11 20:27:45,124 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 62025 - SURIEL 20-25 COTUI/SURIEL GRUPO 2(9095) (CHANCE_EXPRESS)
+2025-09-11 20:27:45,124 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 2031 - SURIEL 20-31 COTUI/SURIEL GRUPO 2(9101) (CHANCE_EXPRESS)
+2025-09-11 20:27:45,125 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 63011 - SURIEL 30-11 JARABACOA/GRUPO 3(9125) (CHANCE_EXPRESS)
+2025-09-11 20:27:45,125 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 4019 - SURIEL 40-19 CONSTANZA/GRUPO 4(10081) (CHANCE_EXPRESS)
+2025-09-11 20:27:45,125 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 011565 - SURIEL 40-30 CONSTANZA/GRUPO 4(10667) (CHANCE_EXPRESS)
+2025-09-11 20:27:45,126 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 011561 - SURIEL 10-124 CONSTANZA/SURIEL GRUPO 13(10663) (CHANCE_EXPRESS)
+2025-09-11 20:27:45,148 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 011560 - SURIEL 10-187 CONSTANZA/GRUPO 18(10662) (CHANCE_EXPRESS)
+2025-09-11 20:27:45,149 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 066252280 - 60-04 CONSTANZA/SURIELGRUPO 19 H(12287) (CHANCE_EXPRESS)
+2025-09-11 20:27:45,191 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 6011123 - Bcas. SURIEL 8101 l SURIEL GRUPO 8 CONSTANZA MÑ(9462) (CHANCE_EXPRESS)
+2025-09-11 20:27:45,191 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: Total Gene - Total General (RULETA_EXPRESS)
+2025-09-11 20:27:45,191 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 6132253 - SURIEL 10- 190 CONSTANZA/GRUPO 1(12260) (RULETA_EXPRESS)
+2025-09-11 20:27:45,192 - backend.app.alerts - INFO - 🚫 Omitiendo agencia filtrada: 011129 - 10-211 /PLAZA MEI | SURIEL |GRUPO 1(21550) (RULETA_EXPRESS)
+2025-09-11 20:27:45,232 - backend.app.scheduler_hybrid - INFO - ✅ Iteración clásica completada: 42 agencias, 8 alertas en 108.57s
+2025-09-11 20:27:45,232 - root - INFO - PID: 15460 - Proceso de monitoreo finalizado.
+2025-09-11 20:28:10,950 - root - INFO - ExpressATM detenido
+2025-09-11 20:28:11,132 - backend.app.scraper - INFO - 🧹 Iniciando limpieza segura del driver...
+2025-09-11 20:28:11,132 - backend.app.scraper - INFO - ✓ No hay driver activo para cerrar
+2025-09-12 14:34:03,878 - backend.app.vision_learning_engine - INFO - Vision Learning Engine inicializado (modo básico)
+2025-09-12 14:34:03,879 - backend.app.scraper - INFO - Sistema de vision + ML disponible
+2025-09-12 14:34:03,880 - backend.app.scraper_intelligent - INFO - Intelligent Scraper inicializado (modo básico)
+2025-09-12 14:34:03,898 - backend.app.intelligence - WARNING - No hay datos historicos suficientes
+2025-09-12 14:34:03,906 - backend.app.scheduler_hybrid - INFO - Scheduler hibrido inicializado (scrapers lazy)
+2025-09-12 14:34:04,076 - root - INFO - ExpressATM iniciado
+2025-09-12 14:34:04,077 - root - INFO - Dashboard disponible
+2025-09-12 14:34:04,077 - root - INFO - Documentacion API disponible

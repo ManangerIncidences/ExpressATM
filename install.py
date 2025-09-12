@@ -59,42 +59,26 @@ def install_requirements():
         sys.exit(1)
 
 def setup_chromedriver():
-    """Descarga e instala ChromeDriver automáticamente"""
-    print_colored("🌐 Configurando ChromeDriver...", Colors.OKBLUE)
-    
-    drivers_dir = Path("drivers")
-    drivers_dir.mkdir(exist_ok=True)
-    
-    system = platform.system().lower()
-    if system == "windows":
-        chrome_url = "https://chromedriver.storage.googleapis.com/LATEST_RELEASE"
-        try:
-            # Obtener última versión
-            with urllib.request.urlopen(chrome_url) as response:
-                version = response.read().decode().strip()
-            
-            # Descargar ChromeDriver
-            driver_url = f"https://chromedriver.storage.googleapis.com/{version}/chromedriver_win32.zip"
-            zip_path = drivers_dir / "chromedriver.zip"
-            
-            print_colored(f"📥 Descargando ChromeDriver {version}...", Colors.WARNING)
-            urllib.request.urlretrieve(driver_url, zip_path)
-            
-            # Extraer
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(drivers_dir)
-            
-            zip_path.unlink()  # Eliminar zip
-            print_colored("✅ ChromeDriver instalado correctamente", Colors.OKGREEN)
-            
-        except Exception as e:
-            print_colored(f"⚠️ Error descargando ChromeDriver: {e}", Colors.WARNING)
-            print_colored("💡 Por favor, descarga ChromeDriver manualmente desde:", Colors.WARNING)
-            print_colored("   https://chromedriver.chromium.org/", Colors.WARNING)
-    else:
-        print_colored("⚠️ Sistema no-Windows detectado. Instala ChromeDriver manualmente:", Colors.WARNING)
-        print_colored("   Ubuntu/Debian: sudo apt install chromium-chromedriver", Colors.WARNING)
-        print_colored("   macOS: brew install chromedriver", Colors.WARNING)
+    """Instala/gestiona ChromeDriver usando webdriver-manager (portable)."""
+    print_colored("🌐 Configurando ChromeDriver (webdriver-manager)...", Colors.OKBLUE)
+
+    # Crear carpeta drivers por compatibilidad (aunque webdriver-manager usa caché propia)
+    Path("drivers").mkdir(exist_ok=True)
+
+    try:
+        from webdriver_manager.chrome import ChromeDriverManager  # type: ignore
+        driver_path = ChromeDriverManager().install()
+        print_colored(f"✅ ChromeDriver listo en: {driver_path}", Colors.OKGREEN)
+        print_colored("ℹ️ La ruta se resolverá automáticamente en runtime (sin rutas hardcodeadas).", Colors.OKBLUE)
+    except Exception as e:
+        print_colored(f"⚠️ No se pudo instalar automáticamente con webdriver-manager: {e}", Colors.WARNING)
+        print_colored("💡 Puedes especificar manualmente CHROMEDRIVER_PATH en .env si ya tienes el binario.", Colors.WARNING)
+        # Mensaje adicional por SO
+        system = platform.system().lower()
+        if system == "windows":
+            print_colored("Descarga manual: https://googlechromelabs.github.io/chrome-for-testing/", Colors.WARNING)
+        else:
+            print_colored("Linux: apt install chromium-chromedriver | macOS: brew install chromedriver", Colors.WARNING)
 
 def create_env_file():
     """Crea archivo .env con configuración por defecto"""
@@ -114,7 +98,7 @@ MONITORING_INTERVAL_MINUTES=15
 MAX_PDF_EXPORT_ROWS=800
 
 # Configuración del navegador
-BROWSER_HEADLESS=true
+CHROME_HEADLESS=true
 BROWSER_TIMEOUT_SECONDS=30
 
 # Puerto del servidor (cambiar si 8000 está ocupado)

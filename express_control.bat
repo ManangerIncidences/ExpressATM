@@ -49,6 +49,7 @@ echo.
 echo 🔍 DIAGNOSTICO:
 echo    [6] Verificar Sistema            (Estado actual)
 echo    [7] Instalar ChromeDriver        (Solo navegador)
+echo    [D] Diagnostico Avanzado         (Deteccion profunda)
 echo.
 echo 🚀 EJECUCION:
 echo    [8] Ejecutar ExpressATM          (Iniciar aplicacion)
@@ -73,6 +74,7 @@ if "%CHOICE%"=="6" goto CHECK_SYSTEM
 if "%CHOICE%"=="7" goto INSTALL_CHROMEDRIVER
 if "%CHOICE%"=="8" goto RUN_APP
 if "%CHOICE%"=="9" goto SHOW_VERSION
+if /i "%CHOICE%"=="D" goto ADV_DIAG
 if /i "%CHOICE%"=="A" goto CLEANUP
 if /i "%CHOICE%"=="B" goto BACKUP
 if /i "%CHOICE%"=="C" goto SYNC_TEAM
@@ -140,6 +142,32 @@ goto MENU
 echo.
 echo 🌐 Instalando ChromeDriver...
 call update_chromedriver.bat
+echo.
+echo Presiona cualquier tecla para volver al menu...
+pause >nul
+goto MENU
+
+:ADV_DIAG
+echo.
+echo 🧪 Ejecutando diagnostico avanzado...
+set "VENV_PY=venv\Scripts\python.exe"
+set "PY_CMD="
+if exist "%VENV_PY%" (
+    set "PY_CMD=%VENV_PY%"
+) else (
+    if defined PYTHON_CMD (
+        set "PY_CMD=%PYTHON_CMD%"
+    ) else (
+        python --version >nul 2>&1 && set "PY_CMD=python"
+        if not defined PY_CMD py --version >nul 2>&1 && set "PY_CMD=py"
+    )
+)
+
+if not defined PY_CMD (
+    echo ❌ Python no detectado. Ejecuta instalacion completa.
+) else (
+    %PY_CMD% scripts\fix_installation.py
+)
 echo.
 echo Presiona cualquier tecla para volver al menu...
 pause >nul

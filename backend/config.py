@@ -1,5 +1,12 @@
 import os
 from pathlib import Path
+from typing import Optional
+
+def _bool_env(name: str, default: bool = False) -> bool:
+    v = os.getenv(name)
+    if v is None:
+        return default
+    return v.strip().lower() in {"1", "true", "yes", "on"}
 
 # Configuración de la aplicación
 class Config:
@@ -9,7 +16,8 @@ class Config:
     PASSWORD = "40200175368Escanio"
     
     # Ruta del ChromeDriver (automática y portable)
-    CHROMEDRIVER_PATH = r"C:\Users\pc\documents\projects\expressATM\drivers\chromedriver.exe"
+    # Puede ser provista por entorno; si no, se detecta automáticamente en runtime
+    CHROMEDRIVER_PATH: Optional[str] = os.getenv("CHROMEDRIVER_PATH")
     
     # Selectores CSS/XPath para automatización
     SELECTORS = {
@@ -42,7 +50,7 @@ class Config:
     }
     
     # Configuración de base de datos
-    DATABASE_URL = "sqlite:///./monitoring.db"
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./monitoring.db")
     
     # Configuración de alertas
     ALERT_THRESHOLDS = {
@@ -65,7 +73,7 @@ class Config:
     WAIT_TIME_ELEMENT = 5     # segundos
     
     # Configuración de navegador
-    HEADLESS_MODE = False  # Cambiar a True para modo headless
+    HEADLESS_MODE = _bool_env("CHROME_HEADLESS", False)
     
     # Configuración de email (opcional)
     SMTP_SERVER = "smtp.gmail.com"
@@ -74,8 +82,8 @@ class Config:
     EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "")
     
     # Logs
-    LOG_LEVEL = "INFO"
-    LOG_FILE = "logs/monitoring.log"
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    LOG_FILE = os.getenv("LOG_FILE", "logs/monitoring.log")
 
-# Variables globales para compatibilidad
-CHROMEDRIVER_PATH = r"C:\Users\pc\documents\projects\expressATM\drivers\chromedriver.exe"
+# Variables globales legacy para compatibilidad (se usarán si se importan directamente)
+CHROMEDRIVER_PATH = os.getenv("CHROMEDRIVER_PATH")
