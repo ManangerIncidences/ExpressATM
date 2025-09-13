@@ -154,11 +154,10 @@ def _env_port_fallback(cli_port: int) -> int:
     return cli_port
 
 
-def _is_port_free_on(addr: str, port: int) -> bool:
+def _is_port_open(addr: str, port: int, timeout: float = 0.2) -> bool:
+    """Retorna True si hay algo escuchando en addr:port (evita falsos positivos de bind en Windows)."""
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind((addr, port))
+        with socket.create_connection((addr, port), timeout=timeout):
             return True
     except OSError:
         return False
@@ -169,10 +168,12 @@ def _find_available_port(host: str, start_port: int, attempts: int = 15) -> int:
 
     Considera colisiones tanto en 127.0.0.1 como en 0.0.0.0 (wildcard) en Windows.
     """
-    candidates = ["127.0.0.1", host]
+    loopback = "127.0.0.1"
+    host_check = host if host and host != "0.0.0.0" else loopback
     port = start_port
     for _ in range(max(1, attempts)):
-        if all(_is_port_free_on(addr, port) for addr in candidates):
+        # Si hay algo escuchando en loopback o en el host indicado, consideramos ocupado
+        if not _is_port_open(loopback, port) and not _is_port_open(host_check, port):
             return port
         port += 1
     return port

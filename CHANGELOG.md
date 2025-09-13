@@ -1,5 +1,22 @@
 # 📋 ExpressATM - Historial de Cambios
 
+## [2.2.3] - 2025-09-13
+
+### 🖥️ Servidor y Convivencia con otros proyectos
+- 🧭 Aislamiento: el servidor cambia a un puerto libre si 8000 está ocupado (considera loopback en Windows)
+- ⚙️ Configurable por entorno: `EXPRESSATM_PORT`/`PORT` y `EXPRESSATM_HOST`/`HOST`
+- 🔄 Reload restringido: `reload_dirs` apunta solo a carpetas de este proyecto
+- 📁 `run.py` asegura `cwd` en la raíz del proyecto
+
+### 🪟 Windows y ChromeDriver
+- 🔧 Migración a `webdriver-manager` para instalar/actualizar ChromeDriver
+- 🧰 Scripts unificados: `scripts/setup_chromedriver.py`
+- 🔁 Wrappers: `update_chromedriver.bat` y `.ps1` llaman al script Python
+- 🧱 Instaladores actualizados: `install_complete.bat` y `install.bat`
+
+### 🧪 Diagnóstico
+- 🧩 Opción “Diagnóstico Avanzado” en `express_control.bat` (ejecuta `scripts/fix_installation.py`)
+
 ## [2.2.2] - 2025-09-11
 
 ### 🧰 Instalador y Ejecución más robustos

@@ -1,8 +1,15 @@
 # ExpressATM - Información de Versión
 
-VERSION = "2.2.2"
-BUILD_DATE = "2025-09-11"
+VERSION = "2.2.3"
+BUILD_DATE = "2025-09-13"
 RELEASE_NOTES = {
+    "2.2.3": [
+        "🧭 Servidor aislado: evita colisión de puertos; usa EXPRESSATM_PORT/PORT y host por ENV",
+        "🔄 Fallback automático a puerto libre (considera loopback en Windows)",
+        "🧪 Diagnóstico avanzado desde menú (scripts/fix_installation.py)",
+        "🛠️ Windows: webdriver-manager para ChromeDriver; wrappers y scripts unificados",
+        "🧰 Instaladores actualizados (install_complete.bat, install.bat, update_chromedriver.*)"
+    ],
     "2.2.2": [
         "🧰 Instalador más robusto: detección de Python por PATH, where y registro",
         "📦 pip/setuptools/wheel actualizados por defecto",
