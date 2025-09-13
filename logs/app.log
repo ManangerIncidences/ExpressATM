@@ -7016,3 +7016,11 @@ Stacktrace:
 2025-09-12 20:50:31,075 - backend.app.scheduler_hybrid - CRITICAL - 📸 Estado de emergencia capturado: Screenshot FALLÓ - Driver no disponible
 2025-09-12 20:50:31,084 - root - INFO - PID: 104 - Proceso de monitoreo finalizado.
 2025-09-12 20:50:31,084 - apscheduler.executors.default - INFO - Job "HybridMonitoringScheduler.execute_single_iteration (trigger: interval[0:10:00], next run at: 2025-09-12 21:00:18 -04)" executed successfully
+2025-09-13 10:27:32,898 - backend.app.vision_learning_engine - INFO - Vision Learning Engine inicializado (modo básico)
+2025-09-13 10:27:32,898 - backend.app.scraper - INFO - Sistema de vision + ML disponible
+2025-09-13 10:27:32,898 - backend.app.scraper_intelligent - INFO - Intelligent Scraper inicializado (modo básico)
+2025-09-13 10:27:32,914 - backend.app.intelligence - WARNING - No hay datos historicos suficientes
+2025-09-13 10:27:32,931 - backend.app.scheduler_hybrid - INFO - Scheduler hibrido inicializado (scrapers lazy)
+2025-09-13 10:27:33,082 - root - INFO - ExpressATM iniciado
+2025-09-13 10:27:33,082 - root - INFO - Dashboard disponible
+2025-09-13 10:27:33,082 - root - INFO - Documentacion API disponible

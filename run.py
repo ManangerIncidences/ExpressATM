@@ -154,21 +154,28 @@ def _env_port_fallback(cli_port: int) -> int:
     return cli_port
 
 
+def _is_port_free_on(addr: str, port: int) -> bool:
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind((addr, port))
+            return True
+    except OSError:
+        return False
+
+
 def _find_available_port(host: str, start_port: int, attempts: int = 15) -> int:
     """Devuelve un puerto libre, intentando desde start_port e incrementando.
 
-    Evita colisiones si 8000 está ocupado por otro servidor.
+    Considera colisiones tanto en 127.0.0.1 como en 0.0.0.0 (wildcard) en Windows.
     """
+    candidates = ["127.0.0.1", host]
     port = start_port
     for _ in range(max(1, attempts)):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            try:
-                s.bind((host, port))
-                return port
-            except OSError:
-                port += 1
-    return start_port
+        if all(_is_port_free_on(addr, port) for addr in candidates):
+            return port
+        port += 1
+    return port
 
 
 def main():
@@ -218,7 +225,10 @@ Ejemplos de uso:
         print_version()
         sys.exit(0)
     
-    # Determinar puerto con ENV y evitar colisiones
+    # Determinar host/puerto por ENV y evitar colisiones
+    env_host = os.getenv("EXPRESSATM_HOST") or os.getenv("HOST")
+    if env_host:
+        args.host = env_host
     args.port = _env_port_fallback(args.port)
 
     # Banner de inicio
@@ -317,7 +327,7 @@ Ejemplos de uso:
                         return FileResponse(str(cand))
                 return HTMLResponse(status_code=204)
 
-        # Ajustar puerto si está ocupado
+        # Ajustar puerto si está ocupado (considerando loopback)
         selected_port = _find_available_port(args.host, int(args.port or 8000))
         if selected_port != args.port:
             print(f"⚠️  Puerto {args.port} ocupado. Usando puerto alternativo {selected_port}.")
