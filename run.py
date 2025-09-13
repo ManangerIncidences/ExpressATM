@@ -27,10 +27,18 @@ import argparse
 import sys
 import os
 import logging
+import socket
 from pathlib import Path
 
-# Añadir el directorio raíz al path de Python
-sys.path.insert(0, str(Path(__file__).parent))
+# Directorio del proyecto y PATH
+PROJECT_ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+# Asegurar que el proceso trabaje desde la carpeta del proyecto
+try:
+    os.chdir(str(PROJECT_ROOT))
+except Exception:
+    pass
 
 # Importar información de versión
 try:
@@ -104,12 +112,19 @@ def check_chromedriver():
     ]
     
     for path in chrome_paths:
-        if path.exists() or (isinstance(path, str) and os.system(f"which {path} > /dev/null 2>&1") == 0):
-            return True
+        if isinstance(path, Path):
+            if path.exists():
+                return True
+        else:
+            # Comprobar en PATH (Windows: where, Unix: which)
+            check_cmd = "where" if os.name == "nt" else "which"
+            rc = os.system(f"{check_cmd} {path} >nul 2>&1" if os.name == "nt" else f"{check_cmd} {path} >/dev/null 2>&1")
+            if rc == 0:
+                return True
     
     print("⚠️ ChromeDriver no encontrado")
     print("💡 Ejecuta uno de estos comandos:")
-    print("   - Windows: python update_chromedriver.py")
+    print("   - Windows: update_chromedriver.bat")
     print("   - Linux: sudo apt install chromium-chromedriver")
     print("   - macOS: brew install chromedriver")
     return False
@@ -125,6 +140,36 @@ def create_initial_directories():
     
     for directory in directories:
         Path(directory).mkdir(parents=True, exist_ok=True)
+
+def _env_port_fallback(cli_port: int) -> int:
+    """Determina el puerto a usar: ENV (EXPRESSATM_PORT/PORT) tiene prioridad si se especifica.
+
+    Si no hay ENV, usa el del CLI. """
+    env_val = os.getenv("EXPRESSATM_PORT") or os.getenv("PORT")
+    if env_val:
+        try:
+            return int(env_val)
+        except ValueError:
+            return cli_port
+    return cli_port
+
+
+def _find_available_port(host: str, start_port: int, attempts: int = 15) -> int:
+    """Devuelve un puerto libre, intentando desde start_port e incrementando.
+
+    Evita colisiones si 8000 está ocupado por otro servidor.
+    """
+    port = start_port
+    for _ in range(max(1, attempts)):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                s.bind((host, port))
+                return port
+            except OSError:
+                port += 1
+    return start_port
+
 
 def main():
     """Función principal"""
@@ -143,7 +188,7 @@ Ejemplos de uso:
     parser.add_argument(
         '--port', '-p',
         type=int,
-        default=8000,
+    default=8000,
         help='Puerto del servidor (default: 8000)'
     )
     
@@ -173,6 +218,9 @@ Ejemplos de uso:
         print_version()
         sys.exit(0)
     
+    # Determinar puerto con ENV y evitar colisiones
+    args.port = _env_port_fallback(args.port)
+
     # Banner de inicio
     print("=" * 60)
     print("ExpressATM - Sistema de Monitoreo")
@@ -206,12 +254,10 @@ Ejemplos de uso:
     try:
         import uvicorn
         from backend.app.main import app
-        # Montaje de estáticos y rutas frontend si no existen
-        from pathlib import Path as _P
         from fastapi.responses import HTMLResponse, FileResponse
         from fastapi.staticfiles import StaticFiles
 
-        ROOT = _P(__file__).parent
+        ROOT = PROJECT_ROOT
         FRONTEND = ROOT / "frontend"
         STATIC = FRONTEND / "static"
         LOGOS = FRONTEND / "logos"
@@ -271,6 +317,12 @@ Ejemplos de uso:
                         return FileResponse(str(cand))
                 return HTMLResponse(status_code=204)
 
+        # Ajustar puerto si está ocupado
+        selected_port = _find_available_port(args.host, int(args.port or 8000))
+        if selected_port != args.port:
+            print(f"⚠️  Puerto {args.port} ocupado. Usando puerto alternativo {selected_port}.")
+            args.port = selected_port
+
         print(f"Iniciando servidor en http://{args.host}:{args.port}")
         print(f"Panel principal: http://localhost:{args.port}")
         print(f"Dashboard: http://localhost:{args.port}/dashboard")
@@ -291,12 +343,13 @@ Ejemplos de uso:
         if args.dev:
             config.update({
                 "reload": True,
-                "reload_dirs": ["backend", "frontend"]
+                # Usar rutas absolutas para evitar ver/observar otros proyectos
+                "reload_dirs": [str(ROOT / "backend"), str(ROOT / "frontend")]
             })
             print("Modo desarrollo: recarga automatica activada")
 
         uvicorn.run(**config)
-        
+
     except ImportError as e:
         logger.error(f"Error importando dependencias: {e}")
         print("Error: Faltan dependencias criticas")
