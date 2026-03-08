@@ -9,7 +9,7 @@ import time
 import re
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from backend.config import Config
+from backend.config import Config, SiteConfig, SITE_EXPRESS
 from backend.driver_manager import get_chromedriver_path, get_chrome_binary_path, get_chrome_and_driver_info
 import logging
 from selenium.webdriver.common.action_chains import ActionChains
@@ -42,16 +42,31 @@ except Exception as e:
     logger.warning(f"Error inicializando sistema de vision: {e}")
 
 class LotteryMonitorScraper:
-    def __init__(self, progress_callback=None):
+    def __init__(self, progress_callback=None, site_config: SiteConfig = None):
         """Inicializar scraper de monitoreo
 
         progress_callback: callable(key, status, message?) para reportar progreso de pasos clave.
-        Claves previstas: login, navigate, base_filters, chance, ruleta, data_ready
+        site_config: SiteConfig con credenciales y lista de loterías. Si None, usa Config.* (legacy express).
         """
         self.driver = None
         self.session_start_time = None
         self.agencies_data = []
         self._progress_cb = progress_callback or (lambda *a, **k: None)
+        
+        # Configuración del sitio
+        self.site_config = site_config
+        if site_config:
+            self._login_url = site_config.login_url
+            self._username = site_config.username
+            self._password = site_config.password
+            self._site_lotteries = site_config.lotteries
+            self._site_id = site_config.site_id
+        else:
+            self._login_url = Config.LOGIN_URL
+            self._username = Config.USERNAME
+            self._password = Config.PASSWORD
+            self._site_lotteries = SITE_EXPRESS.lotteries
+            self._site_id = "express"
         
         # ⚡ Configuración de reintentos y timeout
         self.max_retries = 3
@@ -422,7 +437,7 @@ class LotteryMonitorScraper:
                 self._progress_cb("login", "running")
             except Exception:
                 pass
-            self.driver.get(Config.LOGIN_URL)
+            self.driver.get(self._login_url)
             
             # ESPERA ADICIONAL para asegurar carga completa de la página
             time.sleep(3)  # Pausa crítica para ejecuciones automáticas
@@ -440,13 +455,13 @@ class LotteryMonitorScraper:
                 # Campo usuario
                 user_field = self.wait.until(EC.element_to_be_clickable((By.ID, "txtUser")))
                 user_field.clear()
-                user_field.send_keys(Config.USERNAME)
+                user_field.send_keys(self._username)
                 logger.info("✓ Usuario ingresado")
                 
                 # Campo contraseña  
                 pwd_field = self.wait.until(EC.element_to_be_clickable((By.ID, "txtPwd")))
                 pwd_field.clear()
-                pwd_field.send_keys(Config.PASSWORD)
+                pwd_field.send_keys(self._password)
                 logger.info("✓ Contraseña ingresada")
                 
                 # Botón login con manejo de interceptación
@@ -1588,14 +1603,16 @@ class LotteryMonitorScraper:
         return self.execute_with_retry(self._scrape_all_data_internal)
     
     def _scrape_all_data_internal(self) -> List[Dict[str, Any]]:
-        """Método interno para el proceso completo de scraping TRIPLE (reutilizando sesión)"""
+        """Método interno para el proceso completo de scraping (reutilizando sesión).
+        Itera dinámicamente sobre self._site_lotteries."""
         all_data = []
         
         try:
-            logger.info("🎯 Iniciando proceso de MONITOREO TRIPLE (sesión única)...")
-            logger.info("   📊 Lotería 1: CHANCE EXPRESS")
-            logger.info("   🎲 Lotería 2: CHANCE EXPRESS EXTRAORDINARIO")
-            logger.info("   🎰 Lotería 3: RULETA EXPRESS")
+            n_lotteries = len(self._site_lotteries)
+            lottery_names = [l["name"] for l in self._site_lotteries]
+            logger.info(f"🎯 Iniciando proceso de MONITOREO [{self._site_id.upper()}] ({n_lotteries} loterías, sesión única)...")
+            for i, lot in enumerate(self._site_lotteries, 1):
+                logger.info(f"   📊 Lotería {i}: {lot['name']}")
             try: self._progress_cb("login","running")
             except Exception: pass
             
@@ -1612,7 +1629,6 @@ class LotteryMonitorScraper:
             
             if not self.execute_with_retry(self.navigate_to_monitor):
                 logger.error("✗ Error navegando al monitor")
-                # NO limpiar el driver aquí - permitir que continue o se maneje en cleanup_safe
                 return []
             
             logger.info("✓ Navegación exitosa")
@@ -1629,58 +1645,35 @@ class LotteryMonitorScraper:
             logger.info("✓ Filtros base configurados")
             try: self._progress_cb("base_filters","success")
             except Exception: pass
-            try: self._progress_cb("chance","running")
-            except Exception: pass
             
-            # PASO 3: Procesar CHANCE EXPRESS
-            logger.info("🔄 Procesando CHANCE EXPRESS...")
-            chance_data = self._process_lottery_in_session("CHANCE EXPRESS")
-            if chance_data:
-                for record in chance_data:
-                    record['lottery_type'] = 'CHANCE_EXPRESS'
-                all_data.extend(chance_data)
-                logger.info(f"✅ CHANCE EXPRESS: {len(chance_data)} registros obtenidos")
-            else:
-                logger.warning("⚠️ CHANCE EXPRESS: No se obtuvieron datos")
+            # PASOS DINÁMICOS: Procesar cada lotería del site
+            for lot_cfg in self._site_lotteries:
+                lot_name = lot_cfg["name"]
+                lot_type = lot_cfg["lottery_type"]
+                step_key = lot_cfg["step_key"]
+                
+                logger.info(f"🔄 Procesando {lot_name}...")
+                try: self._progress_cb(step_key, "running")
+                except Exception: pass
+                
+                lot_data = self._process_lottery_in_session(lot_name)
+                if lot_data:
+                    for record in lot_data:
+                        record['lottery_type'] = lot_type
+                    all_data.extend(lot_data)
+                    logger.info(f"✅ {lot_name}: {len(lot_data)} registros obtenidos")
+                else:
+                    logger.warning(f"⚠️ {lot_name}: No se obtuvieron datos")
+                
+                try: self._progress_cb(step_key, "success" if lot_data else "error", None if lot_data else "sin datos")
+                except Exception: pass
             
-            # PASO 4: Cambiar a CHANCE EXPRESS EXTRAORDINARIO (MISMA SESIÓN)
-            logger.info("🔄 Cambiando a CHANCE EXPRESS EXTRAORDINARIO...")
-            try: self._progress_cb("chance","success")
-            except Exception: pass
-            try: self._progress_cb("chance_extra","running")
-            except Exception: pass
-            chance_extra_data = self._process_lottery_in_session("CHANCE EXPRESS EXTRAORDINARIO")
-            if chance_extra_data:
-                for record in chance_extra_data:
-                    record['lottery_type'] = 'CHANCE_EXTRAORDINARIO'
-                all_data.extend(chance_extra_data)
-                logger.info(f"✅ CHANCE EXTRAORDINARIO: {len(chance_extra_data)} registros obtenidos")
-            else:
-                logger.warning("⚠️ CHANCE EXTRAORDINARIO: No se obtuvieron datos")
-            
-            # PASO 5: Cambiar a RULETA EXPRESS (MISMA SESIÓN)
-            logger.info("🔄 Cambiando a RULETA EXPRESS...")
-            try: self._progress_cb("chance_extra","success")
-            except Exception: pass
-            try: self._progress_cb("ruleta","running")
-            except Exception: pass
-            ruleta_data = self._process_lottery_in_session("RULETA EXPRESS")
-            if ruleta_data:
-                for record in ruleta_data:
-                    record['lottery_type'] = 'RULETA_EXPRESS'
-                all_data.extend(ruleta_data)
-                logger.info(f"✅ RULETA EXPRESS: {len(ruleta_data)} registros obtenidos")
-            else:
-                logger.warning("⚠️ RULETA EXPRESS: No se obtuvieron datos")
-            
-            logger.info(f"🎉 MONITOREO TRIPLE COMPLETADO:")
-            try: self._progress_cb("ruleta","success")
-            except Exception: pass
+            logger.info(f"🎉 MONITOREO [{self._site_id.upper()}] COMPLETADO:")
             try: self._progress_cb("data_ready","running")
             except Exception: pass
-            logger.info(f"   📊 CHANCE EXPRESS: {len([r for r in all_data if r.get('lottery_type') == 'CHANCE_EXPRESS'])} registros")
-            logger.info(f"   🎲 CHANCE EXTRAORDINARIO: {len([r for r in all_data if r.get('lottery_type') == 'CHANCE_EXTRAORDINARIO'])} registros")
-            logger.info(f"   🎰 RULETA EXPRESS: {len([r for r in all_data if r.get('lottery_type') == 'RULETA_EXPRESS'])} registros")
+            for lot_cfg in self._site_lotteries:
+                count = len([r for r in all_data if r.get('lottery_type') == lot_cfg["lottery_type"]])
+                logger.info(f"   📊 {lot_cfg['name']}: {count} registros")
             logger.info(f"   📈 TOTAL: {len(all_data)} registros")
             
             return all_data
@@ -1879,7 +1872,15 @@ class LotteryMonitorScraper:
         """Procesar una lotería específica en la sesión actual (solo cambiar dropdown)"""
         try:
             logger.info(f"🎯 Seleccionando {lottery_type} en dropdown...")
-            step_key = "chance_extra" if "EXTRAORDINARIO" in lottery_type.upper() else ("chance" if "CHANCE" in lottery_type.upper() else ("ruleta" if "RULETA" in lottery_type.upper() else lottery_type.lower()))
+            # Determinar step_key desde site_lotteries si está disponible
+            step_key = None
+            for lot_cfg in self._site_lotteries:
+                if lot_cfg["name"] == lottery_type:
+                    step_key = lot_cfg["step_key"]
+                    break
+            if not step_key:
+                # Fallback legacy
+                step_key = "chance_extra" if "EXTRAORDINARIO" in lottery_type.upper() else ("chance" if "CHANCE" in lottery_type.upper() else ("ruleta" if "RULETA" in lottery_type.upper() else lottery_type.lower()))
             try:
                 self._progress_cb(step_key, "running")
             except Exception:
@@ -2029,6 +2030,13 @@ class LotteryMonitorScraper:
                             time.sleep(0.3)
                             logger.info(f"✅ Lotería cambiada a {lottery_type}")
                             return True
+                    elif texto.strip().upper() == lottery_type.strip().upper():
+                        # Coincidencia exacta genérica (para todos los sorteos REAL y futuros)
+                        logger.info(f"✅ Seleccionando (exacta): {texto}")
+                        opcion.click()
+                        time.sleep(0.3)
+                        logger.info(f"✅ Lotería cambiada a {lottery_type}")
+                        return True
                 
                 logger.error(f"No se encontró opción para {lottery_type}")
                 return False

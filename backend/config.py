@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict
+from dataclasses import dataclass, field
 
 def _bool_env(name: str, default: bool = False) -> bool:
     v = os.getenv(name)
@@ -8,9 +9,54 @@ def _bool_env(name: str, default: bool = False) -> bool:
         return default
     return v.strip().lower() in {"1", "true", "yes", "on"}
 
+
+@dataclass
+class SiteConfig:
+    """Configuración de un sitio de scraping"""
+    site_id: str
+    login_url: str
+    username: str
+    password: str
+    lotteries: List[Dict[str, str]] = field(default_factory=list)
+    # lotteries: [{"name": "CHANCE EXPRESS", "lottery_type": "CHANCE_EXPRESS", "step_key": "chance"}, ...]
+
+
+SITE_EXPRESS = SiteConfig(
+    site_id="express",
+    login_url="https://app.appltk.com/",
+    username="Jorge.marte@06",
+    password="40200175368Escanio",
+    lotteries=[
+        {"name": "CHANCE EXPRESS", "lottery_type": "CHANCE_EXPRESS", "step_key": "chance"},
+        {"name": "CHANCE EXPRESS EXTRAORDINARIO", "lottery_type": "CHANCE_EXTRAORDINARIO", "step_key": "chance_extra"},
+        {"name": "RULETA EXPRESS", "lottery_type": "RULETA_EXPRESS", "step_key": "ruleta"},
+    ],
+)
+
+SITE_REAL = SiteConfig(
+    site_id="real",
+    login_url="https://app.applotr.com/acceso2.aspx",
+    username="jorge.marte@06",
+    password="40200175368",
+    lotteries=[
+        {"name": "DOMINO REAL", "lottery_type": "DOMINO_REAL", "step_key": "domino_real"},
+        {"name": "LOTO POOL REAL", "lottery_type": "LOTO_POOL_REAL", "step_key": "loto_pool_real"},
+        {"name": "LOTO REAL", "lottery_type": "LOTO_REAL", "step_key": "loto_real"},
+        {"name": "NUEVA YOL REAL", "lottery_type": "NUEVA_YOL_REAL", "step_key": "nueva_yol_real"},
+        {"name": "NUEVA YOL REAL 5 MIN", "lottery_type": "NUEVA_YOL_REAL_5MIN", "step_key": "nueva_yol_5min"},
+        {"name": "PEGA 3 REAL", "lottery_type": "PEGA_3_REAL", "step_key": "pega_3_real"},
+        {"name": "PEGA 4 REAL", "lottery_type": "PEGA_4_REAL", "step_key": "pega_4_real"},
+        {"name": "SUEÑO REAL", "lottery_type": "SUENO_REAL", "step_key": "sueno_real"},
+        {"name": "TU FECHA REAL", "lottery_type": "TU_FECHA_REAL", "step_key": "tu_fecha_real"},
+    ],
+)
+
+ALL_SITES = [SITE_EXPRESS, SITE_REAL]
+
+
 # Configuración de la aplicación
 class Config:
-    # Credenciales del sitio web
+    # Credenciales del sitio web (legacy — usadas como fallback si no se provee SiteConfig)
     LOGIN_URL = "https://app.appltk.com/"
     USERNAME = "Jorge.marte@06"
     PASSWORD = "40200175368Escanio"

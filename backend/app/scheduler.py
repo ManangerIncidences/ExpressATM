@@ -10,7 +10,7 @@ from .alerts import AlertSystem
 from .database import SessionLocal
 from .models import MonitoringSession, SystemLog
 from .intelligence import intelligence_engine, SystemMetrics, PredictionResult
-from backend.config import Config
+from backend.config import Config, ALL_SITES, SITE_EXPRESS, SITE_REAL
 
 logger = logging.getLogger(__name__)
 
@@ -33,17 +33,29 @@ class MonitoringScheduler:
         return datetime.utcnow().isoformat()
 
     def _progress_steps_template(self):
-        return [
-            {"key": "login", "label": "Login", "status": "pending"},
-            {"key": "navigate", "label": "Navegación", "status": "pending"},
-            {"key": "base_filters", "label": "Filtros base", "status": "pending"},
-            {"key": "chance", "label": "CHANCE EXPRESS", "status": "pending"},
-            {"key": "chance_extra", "label": "CHANCE EXTRAORDINARIO", "status": "pending"},
-            {"key": "ruleta", "label": "RULETA EXPRESS", "status": "pending"},
+        # Pasos comunes inicio
+        steps = [
+            {"key": "login", "label": "Login EXPRESS", "status": "pending"},
+            {"key": "navigate", "label": "Navegación EXPRESS", "status": "pending"},
+            {"key": "base_filters", "label": "Filtros EXPRESS", "status": "pending"},
+        ]
+        # Pasos dinámicos EXPRESS
+        for lot in SITE_EXPRESS.lotteries:
+            steps.append({"key": lot["step_key"], "label": lot["name"], "status": "pending"})
+        # Separador: login/nav/filters para REAL
+        steps.append({"key": "login_real", "label": "Login REAL", "status": "pending"})
+        steps.append({"key": "navigate_real", "label": "Navegación REAL", "status": "pending"})
+        steps.append({"key": "base_filters_real", "label": "Filtros REAL", "status": "pending"})
+        # Pasos dinámicos REAL
+        for lot in SITE_REAL.lotteries:
+            steps.append({"key": lot["step_key"], "label": lot["name"], "status": "pending"})
+        # Pasos finales comunes
+        steps.extend([
             {"key": "data_ready", "label": "Datos listos", "status": "pending"},
             {"key": "generate_alerts", "label": "Generando alertas", "status": "pending"},
-            {"key": "complete", "label": "Completado", "status": "pending"}
-        ]
+            {"key": "complete", "label": "Completado", "status": "pending"},
+        ])
+        return steps
 
     def _start_progress(self):
         with self._progress_lock:
@@ -249,21 +261,21 @@ class MonitoringScheduler:
             return False
     
     def _intelligent_monitoring_iteration(self):
-        """Ejecutar iteración inteligente con predicción y auto-optimización"""
-        scraper = None
+        """Ejecutar iteración inteligente con scraping paralelo de múltiples sitios"""
         start_time = time.time()
         iteration_success = False
         records_obtained = 0
         alerts_generated = 0
         error_type = None
+        all_agencies_data = []
+        scrapers = []
         
         try:
-            logger.info("Iniciando iteración de monitoreo...")
+            logger.info("Iniciando iteración de monitoreo (multi-sitio)...")
             self.iteration_start_time = datetime.now()
             
             # Iniciar progreso
             self._start_progress()
-            self._update_progress_step("login", "running")
 
             # 🧠 FASE 1: Predicción pre-iteración
             if self.intelligence_enabled:
@@ -274,62 +286,89 @@ class MonitoringScheduler:
                     'cpu_usage': psutil.cpu_percent(interval=1)
                 }
                 
-                # Predecir riesgo de fallo
                 failure_prediction = intelligence_engine.predict_failure_risk(current_metrics)
                 
                 if failure_prediction.probability > 0.7:
                     logger.warning(f"🚨 Alto riesgo de fallo detectado: {failure_prediction.recommendation}")
-                    # Aplicar configuración defensiva
                     self._apply_defensive_config()
                 
-                # Detectar anomalías
                 anomalies = intelligence_engine.detect_anomalies(current_metrics)
                 for anomaly in anomalies:
                     logger.warning(f"⚠️ Anomalía detectada: {anomaly['description']}")
             
-            # 🔧 FASE 2: Ejecución adaptiva
-            # Inicializar scraper con configuración adaptiva
-            scraper = LotteryMonitorScraper(progress_callback=self._update_progress_step)
-            alert_system = AlertSystem()
+            # 🔧 FASE 2: Ejecución paralela de scrapers
+            # Callback para sitio REAL: mapea login→login_real, navigate→navigate_real, base_filters→base_filters_real
+            _real_generic_map = {"login": "login_real", "navigate": "navigate_real", "base_filters": "base_filters_real"}
+            def _real_progress_cb(key, status, message=None):
+                mapped = _real_generic_map.get(key, key)
+                self._update_progress_step(mapped, status, message)
+
+            site_results = {}  # site_id -> list[dict]
+
+            def _run_site(site_config, cb):
+                try:
+                    scraper = LotteryMonitorScraper(progress_callback=cb, site_config=site_config)
+                    scrapers.append(scraper)
+                    if self.intelligence_enabled:
+                        self._apply_adaptive_config(scraper)
+                    data = scraper.scrape_all_data()
+                    site_results[site_config.site_id] = data or []
+                    logger.info(f"✅ Sitio {site_config.site_id}: {len(data or [])} registros")
+                except Exception as e:
+                    logger.error(f"❌ Sitio {site_config.site_id} falló: {e}")
+                    site_results[site_config.site_id] = []
+
+            self._update_progress_step("login", "running")
+
+            t_express = threading.Thread(target=_run_site, args=(SITE_EXPRESS, self._update_progress_step), daemon=True)
+            t_real = threading.Thread(target=_run_site, args=(SITE_REAL, _real_progress_cb), daemon=True)
             
-            # Aplicar configuración adaptiva al scraper
-            if self.intelligence_enabled:
-                self._apply_adaptive_config(scraper)
+            t_express.start()
+            t_real.start()
             
-            # Ejecutar scraping con monitoreo de rendimiento
-            start_scraping = time.time()
-            agencies_data = scraper.scrape_all_data()
-            website_response_time = time.time() - start_scraping
+            # Esperar con timeout de 10 minutos por hilo
+            t_express.join(timeout=600)
+            t_real.join(timeout=600)
             
-            if agencies_data:
+            if t_express.is_alive():
+                logger.warning("⏱️ Timeout en sitio EXPRESS")
+            if t_real.is_alive():
+                logger.warning("⏱️ Timeout en sitio REAL")
+            
+            # Combinar resultados parciales (resiliencia)
+            for site_id, data in site_results.items():
+                all_agencies_data.extend(data)
+            
+            website_response_time = time.time() - start_time
+            
+            if all_agencies_data:
                 iteration_success = True
-                records_obtained = len(agencies_data)
+                records_obtained = len(all_agencies_data)
                 self._update_progress_step("data_ready", "success")
                 self._update_progress_step("generate_alerts", "running")
                 
-                # Procesar datos y generar alertas
+                alert_system = AlertSystem()
                 db = SessionLocal()
                 try:
-                    alerts_generated_list = alert_system.process_agencies_data(agencies_data, db)
+                    alerts_generated_list = alert_system.process_agencies_data(all_agencies_data, db)
                     alerts_generated = len(alerts_generated_list)
                     
-                    # Actualizar estadísticas de sesión
                     if self.current_session_id:
                         session = db.query(MonitoringSession).filter(
                             MonitoringSession.id == self.current_session_id
                         ).first()
                         if session:
                             session.total_iterations += 1
-                            session.total_agencies_processed += len(agencies_data)
+                            session.total_agencies_processed += len(all_agencies_data)
                             session.total_alerts_generated += len(alerts_generated_list)
                             db.commit()
                     
-                    # Log resultados
-                    message = f"Iteración completada: {len(agencies_data)} agencias procesadas, {len(alerts_generated_list)} alertas generadas"
+                    express_count = len(site_results.get("express", []))
+                    real_count = len(site_results.get("real", []))
+                    message = f"Iteración completada: EXPRESS={express_count}, REAL={real_count}, total={len(all_agencies_data)} agencias, {len(alerts_generated_list)} alertas"
                     self._log_system_event("INFO", message, "monitoring")
                     logger.info(message)
                     
-                    # Log alertas generadas
                     for alert in alerts_generated_list:
                         alert_msg = f"ALERTA - {alert['type']}: {alert['agency_name']} - {alert['message']}"
                         self._log_system_event("WARNING", alert_msg, "alerts")
@@ -349,7 +388,6 @@ class MonitoringScheduler:
             if self.intelligence_enabled:
                 iteration_duration = time.time() - start_time
                 
-                # Crear métricas del sistema
                 system_metrics = SystemMetrics(
                     timestamp=self.iteration_start_time,
                     iteration_success=iteration_success,
@@ -362,10 +400,8 @@ class MonitoringScheduler:
                     cpu_usage=psutil.cpu_percent()
                 )
                 
-                # Registrar métricas para aprendizaje automático
                 intelligence_engine.record_system_metrics(system_metrics)
                 
-                # 🎯 FASE 4: Auto-optimización
                 if iteration_success:
                     self._apply_post_iteration_optimizations()
             
@@ -375,10 +411,8 @@ class MonitoringScheduler:
             error_msg = f"Error en iteración de monitoreo: {str(e)}"
             logger.error(error_msg)
             self._log_system_event("ERROR", error_msg, "monitoring")
-            # Marcar error si no se había marcado
             self._update_progress_step("complete", "error", error_msg)
             
-            # 🧠 Aprendizaje de errores
             if self.intelligence_enabled:
                 iteration_duration = time.time() - start_time
                 system_metrics = SystemMetrics(
@@ -394,7 +428,6 @@ class MonitoringScheduler:
                 )
                 intelligence_engine.record_system_metrics(system_metrics)
             
-            # Marcar sesión como error
             if self.current_session_id:
                 try:
                     db = SessionLocal()
@@ -410,10 +443,9 @@ class MonitoringScheduler:
                     logger.error(f"Error actualizando sesión: {db_error}")
         
         finally:
-            # Asegurar limpieza del scraper
-            if scraper:
+            for s in scrapers:
                 try:
-                    scraper.cleanup()
+                    s.cleanup()
                 except Exception as cleanup_error:
                     logger.error(f"Error limpiando scraper: {cleanup_error}")
             self._finish_progress(iteration_success)
@@ -554,40 +586,64 @@ class MonitoringScheduler:
         self._log_system_event("INFO", f"Sistema de inteligencia {status}", "intelligence")
     
     def execute_manual_iteration(self) -> dict:
-        """Ejecutar una iteración manual de monitoreo"""
+        """Ejecutar una iteración manual de monitoreo (multi-sitio paralelo)"""
         try:
-            logger.info("Ejecutando iteración manual...")
+            logger.info("Ejecutando iteración manual (multi-sitio)...")
             self._start_progress()
+
+            _real_generic_map = {"login": "login_real", "navigate": "navigate_real", "base_filters": "base_filters_real"}
+            def _real_progress_cb(key, status, message=None):
+                mapped = _real_generic_map.get(key, key)
+                self._update_progress_step(mapped, status, message)
+
+            site_results = {}
+            scrapers = []
+
+            def _run_site(site_config, cb):
+                try:
+                    scraper = LotteryMonitorScraper(progress_callback=cb, site_config=site_config)
+                    scrapers.append(scraper)
+                    data = scraper.scrape_all_data()
+                    site_results[site_config.site_id] = data or []
+                except Exception as e:
+                    logger.error(f"Sitio {site_config.site_id} falló: {e}")
+                    site_results[site_config.site_id] = []
+
             self._update_progress_step("login", "running")
 
-            scraper = LotteryMonitorScraper(progress_callback=self._update_progress_step)
-            alert_system = AlertSystem()
-            
-            # Ejecutar scraping
-            agencies_data = scraper.scrape_all_data()
-            
-            if agencies_data:
-                # Procesar datos y generar alertas
+            t_express = threading.Thread(target=_run_site, args=(SITE_EXPRESS, self._update_progress_step), daemon=True)
+            t_real = threading.Thread(target=_run_site, args=(SITE_REAL, _real_progress_cb), daemon=True)
+            t_express.start()
+            t_real.start()
+            t_express.join(timeout=600)
+            t_real.join(timeout=600)
+
+            all_data = []
+            for data in site_results.values():
+                all_data.extend(data)
+
+            if all_data:
                 self._update_progress_step("data_ready", "success")
                 self._update_progress_step("generate_alerts", "running")
+                alert_system = AlertSystem()
                 db = SessionLocal()
-                alerts_generated = alert_system.process_agencies_data(agencies_data, db)
+                alerts_generated = alert_system.process_agencies_data(all_data, db)
                 db.close()
                 self._update_progress_step("generate_alerts", "success")
                 
-                result = {
+                express_count = len(site_results.get("express", []))
+                real_count = len(site_results.get("real", []))
+                message = f"Iteración manual completada: EXPRESS={express_count}, REAL={real_count}, total={len(all_data)} agencias, {len(alerts_generated)} alertas"
+                self._log_system_event("INFO", message, "manual")
+                
+                self._finish_progress(True)
+                return {
                     "success": True,
-                    "agencies_processed": len(agencies_data),
+                    "agencies_processed": len(all_data),
                     "alerts_generated": len(alerts_generated),
                     "alerts": alerts_generated,
                     "timestamp": datetime.now().isoformat()
                 }
-                
-                message = f"Iteración manual completada: {len(agencies_data)} agencias, {len(alerts_generated)} alertas"
-                self._log_system_event("INFO", message, "manual")
-                
-                self._finish_progress(True)
-                return result
             
             else:
                 self._update_progress_step("data_ready", "error", "Sin datos")
@@ -610,6 +666,12 @@ class MonitoringScheduler:
                 "error": str(e),
                 "timestamp": datetime.now().isoformat()
             }
+        finally:
+            for s in scrapers:
+                try:
+                    s.cleanup()
+                except Exception:
+                    pass
     
     def get_status(self) -> dict:
         """Obtener estado actual del monitoreo con información de inteligencia"""

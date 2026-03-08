@@ -41,6 +41,18 @@ class MonitoringApp {
         chance: 20,
         chance_extra: 20,
         ruleta: 20,
+        login_real: 18,
+        navigate_real: 10,
+        base_filters_real: 12,
+        domino_real: 20,
+        loto_pool_real: 20,
+        loto_real: 20,
+        nueva_yol_real: 20,
+        nueva_yol_5min: 20,
+        pega_3_real: 20,
+        pega_4_real: 20,
+        sueno_real: 20,
+        tu_fecha_real: 20,
         data_ready: 4,
         generate_alerts: 8
     };
@@ -971,10 +983,11 @@ class MonitoringApp {
             const lotteryBadges = group.lottery_types.map(type => {
                 const displayName = type === 'CHANCE_EXPRESS' ? 'CHANCE' : 
                                  type === 'CHANCE_EXTRAORDINARIO' ? 'CHANCE EXTRA' :
-                                 type === 'RULETA_EXPRESS' ? 'RULETA' : type;
+                                 type === 'RULETA_EXPRESS' ? 'RULETA' : 
+                                 type.replace(/_/g, ' ');
                 const badgeClass = type === 'CHANCE_EXPRESS' ? 'bg-primary' : 
                                  type === 'CHANCE_EXTRAORDINARIO' ? 'bg-warning' :
-                                 type === 'RULETA_EXPRESS' ? 'bg-danger' : 'bg-secondary';
+                                 type === 'RULETA_EXPRESS' ? 'bg-danger' : 'bg-info';
                 return `<span class="badge ${badgeClass} me-1 mb-1">
                     🎯 ${displayName}
                 </span>`;
@@ -1406,12 +1419,24 @@ class MonitoringApp {
     renderProgressUI(data){
         // Estructura de pasos esperados si faltan
         const expectedOrder = [
-            {key:'login', label:'Login'},
-            {key:'navigate', label:'Navegación'},
-            {key:'base_filters', label:'Filtros base'},
+            {key:'login', label:'Login EXPRESS'},
+            {key:'navigate', label:'Navegación EXPRESS'},
+            {key:'base_filters', label:'Filtros EXPRESS'},
             {key:'chance', label:'CHANCE EXPRESS'},
             {key:'chance_extra', label:'CHANCE EXTRAORDINARIO'},
             {key:'ruleta', label:'RULETA EXPRESS'},
+            {key:'login_real', label:'Login REAL'},
+            {key:'navigate_real', label:'Navegación REAL'},
+            {key:'base_filters_real', label:'Filtros REAL'},
+            {key:'domino_real', label:'DOMINO REAL'},
+            {key:'loto_pool_real', label:'LOTO POOL REAL'},
+            {key:'loto_real', label:'LOTO REAL'},
+            {key:'nueva_yol_real', label:'NUEVA YOL REAL'},
+            {key:'nueva_yol_5min', label:'NUEVA YOL 5MIN'},
+            {key:'pega_3_real', label:'PEGA 3 REAL'},
+            {key:'pega_4_real', label:'PEGA 4 REAL'},
+            {key:'sueno_real', label:'SUEÑO REAL'},
+            {key:'tu_fecha_real', label:'TU FECHA REAL'},
             {key:'data_ready', label:'Datos listos'},
             {key:'generate_alerts', label:'Generando alertas'},
             {key:'complete', label:'Completado'}
@@ -1542,12 +1567,24 @@ class MonitoringApp {
 
     _labelForStep(key){
         switch(key){
-            case 'login': return 'Login';
-            case 'navigate': return 'Navegación';
-            case 'base_filters': return 'Filtros';
+            case 'login': return 'Login E';
+            case 'navigate': return 'Nav E';
+            case 'base_filters': return 'Filtros E';
             case 'chance': return 'Chance';
             case 'chance_extra': return 'Ch. Extra';
             case 'ruleta': return 'Ruleta';
+            case 'login_real': return 'Login R';
+            case 'navigate_real': return 'Nav R';
+            case 'base_filters_real': return 'Filtros R';
+            case 'domino_real': return 'Domino';
+            case 'loto_pool_real': return 'Loto Pool';
+            case 'loto_real': return 'Loto';
+            case 'nueva_yol_real': return 'N. Yol';
+            case 'nueva_yol_5min': return 'N. Yol 5m';
+            case 'pega_3_real': return 'Pega 3';
+            case 'pega_4_real': return 'Pega 4';
+            case 'sueno_real': return 'Sueño';
+            case 'tu_fecha_real': return 'Tu Fecha';
             case 'data_ready': return 'Datos';
             case 'generate_alerts': return 'Alertas';
             case 'complete': return 'Fin';
@@ -2180,7 +2217,7 @@ class MonitoringApp {
                         <td class="${this.getMoneyClass(it.delta_balance)}">${this.formatMoney(it.delta_balance)}</td>
                         <td class="${this.getMoneyClass(it.prizes)}">${this.formatMoney(it.prizes)}</td>
                         <td class="${this.getMoneyClass(it.prizes_paid)}">${this.formatMoney(it.prizes_paid)}</td>
-                        <td><span class="badge ${it.lottery_type==='CHANCE_EXPRESS' ? 'bg-primary' : it.lottery_type==='CHANCE_EXTRAORDINARIO' ? 'bg-warning' : 'bg-danger'}">${it.lottery_type || '-'}</span></td>
+                        <td><span class="badge ${it.lottery_type==='CHANCE_EXPRESS' ? 'bg-primary' : it.lottery_type==='CHANCE_EXTRAORDINARIO' ? 'bg-warning' : it.lottery_type==='RULETA_EXPRESS' ? 'bg-danger' : 'bg-info'}">${it.lottery_type || '-'}</span></td>
                     </tr>
                 `).join('');
             }

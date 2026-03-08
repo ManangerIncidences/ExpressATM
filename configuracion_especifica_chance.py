@@ -60,6 +60,23 @@ class ChanceExpressOptimizer:
             }
         }
         
+        # Agregar configuración genérica para loterías REAL
+        _real_lotteries = [
+            "DOMINO REAL", "LOTO POOL REAL", "LOTO REAL",
+            "NUEVA YOL REAL", "NUEVA YOL REAL 5 MIN",
+            "PEGA 3 REAL", "PEGA 4 REAL", "SUEÑO REAL", "TU FECHA REAL"
+        ]
+        for _name in _real_lotteries:
+            self.lottery_configs[_name] = {
+                "base_timeout": 35,
+                "table_wait_multiplier": 1.2,
+                "retry_attempts": 3,
+                "visual_confirmation_required": False,
+                "placeholder_patterns": ["Total General", "$0.00", "0.00"],
+                "expected_min_rows": 5,
+                "stability_checks": 2
+            }
+        
         # Estadísticas de rendimiento por lotería
         self.performance_stats = {
             "CHANCE EXPRESS": {
@@ -81,6 +98,15 @@ class ChanceExpressOptimizer:
                 "total_attempts": 0
             }
         }
+        
+        # Agregar stats para loterías REAL
+        for _name in _real_lotteries:
+            self.performance_stats[_name] = {
+                "avg_load_time": 0,
+                "success_rate": 0,
+                "placeholder_incidents": 0,
+                "total_attempts": 0
+            }
     
     def get_lottery_config(self, lottery_name: str) -> Dict[str, Any]:
         """Obtener configuración específica para una lotería"""
