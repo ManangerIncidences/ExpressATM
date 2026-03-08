@@ -14,7 +14,7 @@ from .scraper import LotteryMonitorScraper
 from .alerts import AlertSystem
 from .database import SessionLocal
 from .models import MonitoringSession, SystemLog
-from backend.config import Config
+from backend.config import Config, SITE_EXPRESS, SITE_REAL
 from .dom_learning_engine import dom_learner
 
 # 🧠 Importar sistema inteligente
@@ -74,16 +74,24 @@ class HybridMonitoringScheduler:
         return _dt.utcnow().isoformat()
 
     def _progress_steps_template(self):
-        return [
-            {"key": "login", "label": "Login", "status": "pending"},
-            {"key": "navigate", "label": "Navegación", "status": "pending"},
-            {"key": "base_filters", "label": "Filtros base", "status": "pending"},
-            {"key": "chance", "label": "CHANCE EXPRESS", "status": "pending"},
-            {"key": "ruleta", "label": "RULETA EXPRESS", "status": "pending"},
+        steps = [
+            {"key": "login", "label": "Login EXPRESS", "status": "pending"},
+            {"key": "navigate", "label": "Navegación EXPRESS", "status": "pending"},
+            {"key": "base_filters", "label": "Filtros EXPRESS", "status": "pending"},
+        ]
+        for lot in SITE_EXPRESS.lotteries:
+            steps.append({"key": lot["step_key"], "label": lot["name"], "status": "pending"})
+        steps.append({"key": "login_real", "label": "Login REAL", "status": "pending"})
+        steps.append({"key": "navigate_real", "label": "Navegación REAL", "status": "pending"})
+        steps.append({"key": "base_filters_real", "label": "Filtros REAL", "status": "pending"})
+        for lot in SITE_REAL.lotteries:
+            steps.append({"key": lot["step_key"], "label": lot["name"], "status": "pending"})
+        steps.extend([
             {"key": "data_ready", "label": "Datos listos", "status": "pending"},
             {"key": "generate_alerts", "label": "Generando alertas", "status": "pending"},
-            {"key": "complete", "label": "Completado", "status": "pending"}
-        ]
+            {"key": "complete", "label": "Completado", "status": "pending"},
+        ])
+        return steps
 
     def _start_progress(self):
         with self._progress_lock:
@@ -308,43 +316,74 @@ class HybridMonitoringScheduler:
         return random.random() * 100 < self.intelligent_percentage
     
     def execute_iteration_classic(self) -> dict:
-        """Ejecutar iteración con sistema clásico"""
+        """Ejecutar iteración clásica con scraping paralelo multi-sitio"""
         start_time = time.time()
         vision_activated = False
         
         try:
-            logger.info("🔄 Ejecutando iteración clásica...")
-            # Iniciar progreso solo si no hay uno activo (permite inicio temprano desde manual)
+            logger.info("🔄 Ejecutando iteración clásica (multi-sitio paralelo)...")
             if not self._progress.get("active"):
                 self._start_progress()
             self._update_progress_step("login", "running")
             
-            # 🔧 INICIALIZACIÓN LAZY DE SCRAPER CLÁSICO
-            logger.info("🔄 Inicializando scraper clásico...")
-            
             # ===== MONITOREO PREVENTIVO DE IRREGULARIDADES =====
             irregularities_detected = self._detect_pre_execution_irregularities()
-            
             if irregularities_detected:
                 logger.warning("🚨 IRREGULARIDADES DETECTADAS - Activando visión preventiva...")
                 vision_activated = self._activate_preventive_vision()
             
-            # Ejecutar scraping clásico con monitoreo en tiempo real
-            # Pasar callback de progreso al scraper clásico (lazy init asegurada)
-            if self._classic_scraper is None:
-                self._classic_scraper = LotteryMonitorScraper(progress_callback=self._update_progress_step)
-            else:
-                # Asegurar que el callback interno se actualiza cada iteración
+            # === EJECUCIÓN PARALELA MULTI-SITIO ===
+            import threading
+            
+            _real_generic_map = {"login": "login_real", "navigate": "navigate_real", "base_filters": "base_filters_real"}
+            def _real_progress_cb(key, status, message=None):
+                mapped = _real_generic_map.get(key, key)
+                self._update_progress_step(mapped, status, message)
+            
+            site_results = {}  # site_id -> list[dict]
+            site_scrapers = []  # para cleanup
+            
+            def _run_site(site_config, cb):
                 try:
-                    self._classic_scraper._progress_cb = self._update_progress_step
+                    scraper = LotteryMonitorScraper(progress_callback=cb, site_config=site_config)
+                    site_scrapers.append(scraper)
+                    data = scraper.scrape_all_data()
+                    site_results[site_config.site_id] = data or []
+                    logger.info(f"✅ Sitio {site_config.site_id}: {len(data or [])} registros")
+                except Exception as e:
+                    logger.error(f"❌ Sitio {site_config.site_id} falló: {e}")
+                    site_results[site_config.site_id] = []
+            
+            t_express = threading.Thread(target=_run_site, args=(SITE_EXPRESS, self._update_progress_step), daemon=True)
+            t_real = threading.Thread(target=_run_site, args=(SITE_REAL, _real_progress_cb), daemon=True)
+            
+            t_express.start()
+            t_real.start()
+            
+            t_express.join(timeout=600)
+            t_real.join(timeout=600)
+            
+            if t_express.is_alive():
+                logger.warning("⏱️ Timeout en sitio EXPRESS")
+            if t_real.is_alive():
+                logger.warning("⏱️ Timeout en sitio REAL")
+            
+            # Combinar resultados parciales (resiliencia)
+            scraped_data = []
+            for data in site_results.values():
+                scraped_data.extend(data)
+            
+            # Cleanup de scrapers creados en hilos
+            for s in site_scrapers:
+                try:
+                    s.cleanup_safe()
                 except Exception:
                     pass
-            scraped_data = self._execute_scraping_with_monitoring()
+            # Limpiar referencia al scraper clásico legacy
+            self._classic_scraper = None
             
             if not scraped_data:
-                logger.warning("No se obtuvieron datos del scraping clásico")
-                
-                # 👁️ ACTIVAR VISIÓN DE EMERGENCIA si no se activó antes
+                logger.warning("No se obtuvieron datos del scraping multi-sitio")
                 if not vision_activated:
                     logger.critical("🆘 ACTIVANDO VISIÓN DE EMERGENCIA - Sin datos obtenidos")
                     self._activate_emergency_vision()
@@ -360,7 +399,7 @@ class HybridMonitoringScheduler:
                     'vision_activated': vision_activated
                 }
             
-            # Procesar alertas  
+            # Procesar alertas
             self._update_progress_step("data_ready", "success")
             self._update_progress_step("generate_alerts", "running")
             with SessionLocal() as db:
@@ -371,7 +410,9 @@ class HybridMonitoringScheduler:
             self.performance_metrics['classic']['count'] += 1
             self.performance_metrics['classic']['total_time'] += duration
             
-            logger.info(f"✅ Iteración clásica completada: {len(scraped_data)} agencias, {len(alerts_generated)} alertas en {duration:.2f}s")
+            express_count = len(site_results.get("express", []))
+            real_count = len(site_results.get("real", []))
+            logger.info(f"✅ Iteración clásica completada: EXPRESS={express_count}, REAL={real_count}, total={len(scraped_data)} agencias, {len(alerts_generated)} alertas en {duration:.2f}s")
             
             self._finish_progress(True)
             return {
@@ -389,7 +430,6 @@ class HybridMonitoringScheduler:
             self.performance_metrics['classic']['errors'] += 1
             logger.error(f"❌ Error en iteración clásica: {e}")
             
-            # 👁️ ACTIVAR VISIÓN DE EMERGENCIA en caso de error
             if not vision_activated:
                 logger.critical("🆘 ACTIVANDO VISIÓN DE EMERGENCIA - Error detectado")
                 self._activate_emergency_vision()
