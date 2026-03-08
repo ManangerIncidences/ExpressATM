@@ -39,6 +39,7 @@ class MonitoringApp {
         navigate: 10,
         base_filters: 12,
         chance: 20,
+        chance_extra: 20,
         ruleta: 20,
         data_ready: 4,
         generate_alerts: 8
@@ -384,8 +385,15 @@ class MonitoringApp {
         activity.forEach(r=>{
             currentSnapshot.set(r.agency_code,{sales:r.sales||0,balance:r.balance||0,alertsCount:(pendingAlertsByAgency[r.agency_code]||[]).length,ts:now,agency_name:r.agency_name});
         });
+        // Baseline: si no hay baseline y no hay snapshot previo, no cortar si hay incremento de iteración
+        let baselineInitThisCall = false;
         if (!this._baselineInitialized && this._lastAlertsSnapshot.size===0) {
-            this._lastAlertsSnapshot = currentSnapshot; this._baselineInitialized = true; this._persistIterationSnapshot(); console.debug('[detectIterationChanges] baseline inicializada'); return;
+            if (!this._iterationIncrementFlag) {
+                this._lastAlertsSnapshot = currentSnapshot; this._baselineInitialized = true; this._persistIterationSnapshot(); console.debug('[detectIterationChanges] baseline inicializada'); return;
+            } else {
+                // Procesar diffs contra snapshot vacío y marcar baseline al final
+                baselineInitThisCall = true;
+            }
         }
         if (!this._iterationIncrementFlag) { console.debug('[detectIterationChanges] sin flag de iteración, skip'); return; }
         this._iterationIncrementFlag = false; // consume
@@ -403,11 +411,15 @@ class MonitoringApp {
             }
         });
         this._lastAlertsSnapshot=currentSnapshot; this._persistIterationSnapshot();
-    if(!changes.length && !newAlertAgencies.length) { console.debug('[detectIterationChanges] sin cambios detectables'); return; }
-        const signatureBase = changes.map(c=>c.agency_code+':'+c.deltaSales+':'+c.deltaBalance+':'+c.deltaAlerts).join('|')+'|'+newAlertAgencies.map(n=>n.agency_code).join(',');
+        // Si la baseline se está inicializando en esta llamada, márcalo
+        if (baselineInitThisCall) this._baselineInitialized = true;
+        // Firmar incluyendo el contador de iteración para no deduplicar iteraciones "sin cambios"
+        const iterationId = (typeof this.lastIterationCount === 'number' ? String(this.lastIterationCount) : String(now));
+        const signatureBase = iterationId + '|' + (changes.map(c=>c.agency_code+':'+c.deltaSales+':'+c.deltaBalance+':'+c.deltaAlerts).join('|')+'|'+newAlertAgencies.map(n=>n.agency_code).join(','));
         const sig = signatureBase?this.simpleHash(signatureBase):null; if(sig && this._lastIterationSignature===sig) return; this._lastIterationSignature=sig;
-    this._iterationChangesBuffer.push({at:now,changes,newAgencies:newAlertAgencies}); this._pendingIterationCount++;
-    console.debug('[detectIterationChanges] cambios registrados batches=', this._iterationChangesBuffer.length, 'agencias con cambios', changes.length, 'nuevas alertas', newAlertAgencies.length);
+        // Registrar batch aunque no haya cambios para disparar sonido/push/modal de fin de iteración
+        this._iterationChangesBuffer.push({at:now,changes,newAgencies:newAlertAgencies}); this._pendingIterationCount++;
+        console.debug('[detectIterationChanges] cambios registrados batches=', this._iterationChangesBuffer.length, 'agencias con cambios', changes.length, 'nuevas alertas', newAlertAgencies.length);
         this.maybePlayIterationSound(); this.maybeSendIterationPush(changes,newAlertAgencies,now);
         if(this.settings?.autoShowIterationSummary && !document.hidden && !this._iterationModalOpen){ if(Date.now()-this._lastIterationModalShownAt>this.iterationModalCooldownMs){ this.showIterationChangesModal(); } }
     }
@@ -595,10 +607,6 @@ class MonitoringApp {
         if (Notification.permission !== 'granted') return;
         if (nowTs - this._lastIterationPushAt < 3000) return;
         const agenciesChanged = changes.length; // considerar cualquier cambio (ventas, balance o alertas +/-)
-        if (agenciesChanged === 0 && newAlertAgencies.length === 0) {
-            console.debug('[maybeSendIterationPush] no hay cambios relevantes para push');
-            return;
-        }
         const title = 'Iteración completada';
         const body = `${agenciesChanged} con cambios • ${newAlertAgencies.length} nuevas en alerta`;
         try {
@@ -962,8 +970,10 @@ class MonitoringApp {
             // ✨ NUEVO: Crear etiquetas de tipos de lotería
             const lotteryBadges = group.lottery_types.map(type => {
                 const displayName = type === 'CHANCE_EXPRESS' ? 'CHANCE' : 
+                                 type === 'CHANCE_EXTRAORDINARIO' ? 'CHANCE EXTRA' :
                                  type === 'RULETA_EXPRESS' ? 'RULETA' : type;
                 const badgeClass = type === 'CHANCE_EXPRESS' ? 'bg-primary' : 
+                                 type === 'CHANCE_EXTRAORDINARIO' ? 'bg-warning' :
                                  type === 'RULETA_EXPRESS' ? 'bg-danger' : 'bg-secondary';
                 return `<span class="badge ${badgeClass} me-1 mb-1">
                     🎯 ${displayName}
@@ -1400,6 +1410,7 @@ class MonitoringApp {
             {key:'navigate', label:'Navegación'},
             {key:'base_filters', label:'Filtros base'},
             {key:'chance', label:'CHANCE EXPRESS'},
+            {key:'chance_extra', label:'CHANCE EXTRAORDINARIO'},
             {key:'ruleta', label:'RULETA EXPRESS'},
             {key:'data_ready', label:'Datos listos'},
             {key:'generate_alerts', label:'Generando alertas'},
@@ -1535,6 +1546,7 @@ class MonitoringApp {
             case 'navigate': return 'Navegación';
             case 'base_filters': return 'Filtros';
             case 'chance': return 'Chance';
+            case 'chance_extra': return 'Ch. Extra';
             case 'ruleta': return 'Ruleta';
             case 'data_ready': return 'Datos';
             case 'generate_alerts': return 'Alertas';
@@ -2168,7 +2180,7 @@ class MonitoringApp {
                         <td class="${this.getMoneyClass(it.delta_balance)}">${this.formatMoney(it.delta_balance)}</td>
                         <td class="${this.getMoneyClass(it.prizes)}">${this.formatMoney(it.prizes)}</td>
                         <td class="${this.getMoneyClass(it.prizes_paid)}">${this.formatMoney(it.prizes_paid)}</td>
-                        <td><span class="badge ${it.lottery_type==='CHANCE_EXPRESS' ? 'bg-primary' : 'bg-danger'}">${it.lottery_type || '-'}</span></td>
+                        <td><span class="badge ${it.lottery_type==='CHANCE_EXPRESS' ? 'bg-primary' : it.lottery_type==='CHANCE_EXTRAORDINARIO' ? 'bg-warning' : 'bg-danger'}">${it.lottery_type || '-'}</span></td>
                     </tr>
                 `).join('');
             }

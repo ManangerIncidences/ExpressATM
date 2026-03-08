@@ -37,6 +37,18 @@ class ChanceExpressOptimizer:
                 "expected_min_rows": 10,  # Mínimo esperado para datos reales
                 "stability_checks": 3  # Verificaciones de estabilidad extra
             },
+            "CHANCE EXPRESS EXTRAORDINARIO": {
+                "base_timeout": 45,  # Mismo que CHANCE EXPRESS hasta tener datos reales
+                "table_wait_multiplier": 1.5,
+                "retry_attempts": 3,
+                "visual_confirmation_required": True,
+                "placeholder_patterns": [
+                    "Total General", "$0.00", "0.00",
+                    "Cargando...", "Procesando...", "---"
+                ],
+                "expected_min_rows": 5,  # Conservador hasta conocer volumen real
+                "stability_checks": 3
+            },
             "RULETA EXPRESS": {
                 "base_timeout": 30,  # Timeout normal
                 "table_wait_multiplier": 1.0,  # Tiempo normal
@@ -51,6 +63,12 @@ class ChanceExpressOptimizer:
         # Estadísticas de rendimiento por lotería
         self.performance_stats = {
             "CHANCE EXPRESS": {
+                "avg_load_time": 0,
+                "success_rate": 0,
+                "placeholder_incidents": 0,
+                "total_attempts": 0
+            },
+            "CHANCE EXPRESS EXTRAORDINARIO": {
                 "avg_load_time": 0,
                 "success_rate": 0,
                 "placeholder_incidents": 0,

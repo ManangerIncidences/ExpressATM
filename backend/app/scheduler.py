@@ -38,6 +38,7 @@ class MonitoringScheduler:
             {"key": "navigate", "label": "Navegación", "status": "pending"},
             {"key": "base_filters", "label": "Filtros base", "status": "pending"},
             {"key": "chance", "label": "CHANCE EXPRESS", "status": "pending"},
+            {"key": "chance_extra", "label": "CHANCE EXTRAORDINARIO", "status": "pending"},
             {"key": "ruleta", "label": "RULETA EXPRESS", "status": "pending"},
             {"key": "data_ready", "label": "Datos listos", "status": "pending"},
             {"key": "generate_alerts", "label": "Generando alertas", "status": "pending"},

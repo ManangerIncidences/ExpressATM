@@ -10,7 +10,7 @@ import re
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from backend.config import Config
-from backend.driver_manager import get_chromedriver_path
+from backend.driver_manager import get_chromedriver_path, get_chrome_binary_path, get_chrome_and_driver_info
 import logging
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
@@ -80,6 +80,16 @@ class LotteryMonitorScraper:
             # CONFIGURACIÓN MÍNIMA Y RÁPIDA (inspirada en script que funciona rápido)
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--disable-gpu")
+            chrome_options.add_argument("--disable-extensions")
+            chrome_options.add_argument("--disable-background-networking")
+            chrome_options.add_argument("--disable-background-timer-throttling")
+            chrome_options.add_argument("--disable-client-side-phishing-detection")
+            chrome_options.add_argument("--disable-hang-monitor")
+            chrome_options.add_argument("--disable-popup-blocking")
+            chrome_options.add_argument("--metrics-recording-only")
+            chrome_options.add_argument("--password-store=basic")
+            chrome_options.add_argument("--use-mock-keychain")
             
             # CONFIGURACIÓN DE PANTALLA PARA MÚLTIPLES MONITORES
             chrome_options.add_argument("--window-size=1920,1080")  # Tamaño estándar
@@ -92,14 +102,35 @@ class LotteryMonitorScraper:
             
             # Configurar headless si es necesario
             if getattr(Config, 'HEADLESS_MODE', False):
-                chrome_options.add_argument("--headless")
+                # Headless moderno
+                chrome_options.add_argument("--headless=new")
+                chrome_options.add_argument("--window-size=1920,1080")
             
+            # Intentar fijar el binario de Chrome si está disponible (mejora portabilidad)
+            try:
+                chrome_binary = get_chrome_binary_path()
+                if chrome_binary:
+                    chrome_options.binary_location = chrome_binary
+                    logger.info(f"Chrome binary: {chrome_binary}")
+            except Exception as _e:
+                logger.debug(f"No se pudo determinar CHROME_BINARY: {_e}")
+
             # Crear servicio del driver (usa variable de entorno si existe o detección automática)
             driver_binary = Config.CHROMEDRIVER_PATH or get_chromedriver_path()
             self.service = Service(driver_binary)
             
             # Crear driver con configuración mínima
             self.driver = webdriver.Chrome(service=self.service, options=chrome_options)
+
+            # Log de diagnóstico de versiones y rutas
+            try:
+                caps = self.driver.capabilities or {}
+                browser_ver = caps.get('browserVersion') or caps.get('version')
+                cd_ver = caps.get('chrome', {}).get('chromedriverVersion') if isinstance(caps.get('chrome'), dict) else None
+                diag = get_chrome_and_driver_info()
+                logger.info(f"Selenium: browser={browser_ver} chromedriver={cd_ver} service={driver_binary} opts.binary={getattr(chrome_options,'binary_location',None)} diag={diag}")
+            except Exception as _e:
+                logger.debug(f"Diag capabilities error: {_e}")
             
             # CONFIGURACIÓN ADICIONAL DE VENTANA DESPUÉS DE CREAR EL DRIVER
             try:
@@ -1557,13 +1588,14 @@ class LotteryMonitorScraper:
         return self.execute_with_retry(self._scrape_all_data_internal)
     
     def _scrape_all_data_internal(self) -> List[Dict[str, Any]]:
-        """Método interno para el proceso completo de scraping DUAL (reutilizando sesión)"""
+        """Método interno para el proceso completo de scraping TRIPLE (reutilizando sesión)"""
         all_data = []
         
         try:
-            logger.info("🎯 Iniciando proceso de MONITOREO DUAL (sesión única)...")
+            logger.info("🎯 Iniciando proceso de MONITOREO TRIPLE (sesión única)...")
             logger.info("   📊 Lotería 1: CHANCE EXPRESS")
-            logger.info("   🎰 Lotería 2: RULETA EXPRESS")
+            logger.info("   🎲 Lotería 2: CHANCE EXPRESS EXTRAORDINARIO")
+            logger.info("   🎰 Lotería 3: RULETA EXPRESS")
             try: self._progress_cb("login","running")
             except Exception: pass
             
@@ -1611,9 +1643,24 @@ class LotteryMonitorScraper:
             else:
                 logger.warning("⚠️ CHANCE EXPRESS: No se obtuvieron datos")
             
-            # PASO 4: Cambiar a RULETA EXPRESS (MISMA SESIÓN)
-            logger.info("🔄 Cambiando a RULETA EXPRESS...")
+            # PASO 4: Cambiar a CHANCE EXPRESS EXTRAORDINARIO (MISMA SESIÓN)
+            logger.info("🔄 Cambiando a CHANCE EXPRESS EXTRAORDINARIO...")
             try: self._progress_cb("chance","success")
+            except Exception: pass
+            try: self._progress_cb("chance_extra","running")
+            except Exception: pass
+            chance_extra_data = self._process_lottery_in_session("CHANCE EXPRESS EXTRAORDINARIO")
+            if chance_extra_data:
+                for record in chance_extra_data:
+                    record['lottery_type'] = 'CHANCE_EXTRAORDINARIO'
+                all_data.extend(chance_extra_data)
+                logger.info(f"✅ CHANCE EXTRAORDINARIO: {len(chance_extra_data)} registros obtenidos")
+            else:
+                logger.warning("⚠️ CHANCE EXTRAORDINARIO: No se obtuvieron datos")
+            
+            # PASO 5: Cambiar a RULETA EXPRESS (MISMA SESIÓN)
+            logger.info("🔄 Cambiando a RULETA EXPRESS...")
+            try: self._progress_cb("chance_extra","success")
             except Exception: pass
             try: self._progress_cb("ruleta","running")
             except Exception: pass
@@ -1626,12 +1673,13 @@ class LotteryMonitorScraper:
             else:
                 logger.warning("⚠️ RULETA EXPRESS: No se obtuvieron datos")
             
-            logger.info(f"🎉 MONITOREO DUAL COMPLETADO:")
+            logger.info(f"🎉 MONITOREO TRIPLE COMPLETADO:")
             try: self._progress_cb("ruleta","success")
             except Exception: pass
             try: self._progress_cb("data_ready","running")
             except Exception: pass
             logger.info(f"   📊 CHANCE EXPRESS: {len([r for r in all_data if r.get('lottery_type') == 'CHANCE_EXPRESS'])} registros")
+            logger.info(f"   🎲 CHANCE EXTRAORDINARIO: {len([r for r in all_data if r.get('lottery_type') == 'CHANCE_EXTRAORDINARIO'])} registros")
             logger.info(f"   🎰 RULETA EXPRESS: {len([r for r in all_data if r.get('lottery_type') == 'RULETA_EXPRESS'])} registros")
             logger.info(f"   📈 TOTAL: {len(all_data)} registros")
             
@@ -1831,7 +1879,7 @@ class LotteryMonitorScraper:
         """Procesar una lotería específica en la sesión actual (solo cambiar dropdown)"""
         try:
             logger.info(f"🎯 Seleccionando {lottery_type} en dropdown...")
-            step_key = "chance" if "CHANCE" in lottery_type.upper() else ("ruleta" if "RULETA" in lottery_type.upper() else lottery_type.lower())
+            step_key = "chance_extra" if "EXTRAORDINARIO" in lottery_type.upper() else ("chance" if "CHANCE" in lottery_type.upper() else ("ruleta" if "RULETA" in lottery_type.upper() else lottery_type.lower()))
             try:
                 self._progress_cb(step_key, "running")
             except Exception:
@@ -1961,7 +2009,13 @@ class LotteryMonitorScraper:
                     logger.info(f"Evaluando: '{texto}'")
                     
                     # Buscar coincidencias más flexibles
-                    if lottery_type == "CHANCE EXPRESS" and "CHANCE" in texto and "EXPRESS" in texto:
+                    if lottery_type == "CHANCE EXPRESS EXTRAORDINARIO" and "CHANCE" in texto and "EXTRAORDINARIO" in texto:
+                        logger.info(f"✅ Seleccionando CHANCE EXPRESS EXTRAORDINARIO: {texto}")
+                        opcion.click()
+                        time.sleep(0.3)
+                        logger.info(f"✅ Lotería cambiada a {lottery_type}")
+                        return True
+                    elif lottery_type == "CHANCE EXPRESS" and "CHANCE" in texto and "EXPRESS" in texto:
                         if "EXTRAORDINARIO" not in texto:
                             logger.info(f"✅ Seleccionando CHANCE EXPRESS: {texto}")
                             opcion.click()
