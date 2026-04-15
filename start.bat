@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0"
 echo ========================================
 echo ExpressATM - Instalacion Basica
 echo ========================================
@@ -16,9 +17,22 @@ if %errorlevel% neq 0 (
 
 echo Python encontrado
 echo.
-echo Instalando dependencias basicas...
 
-REM Instalar dependencias
+REM Crear entorno virtual si no existe
+if not exist "venv\Scripts\python.exe" (
+    echo Creando entorno virtual...
+    python -m venv venv
+    if %errorlevel% neq 0 (
+        echo ERROR: No se pudo crear el entorno virtual
+        pause
+        exit /b 1
+    )
+)
+
+echo Activando entorno virtual...
+call venv\Scripts\activate.bat
+
+echo Instalando dependencias basicas...
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 

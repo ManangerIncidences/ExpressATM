@@ -36,6 +36,8 @@ screenshots/
 # ChromeDriver
 chromedriver.exe
 chromedriver
+drivers/chromedriver.exe
+drivers/chromedriver
 
 # IDE
 .vscode/
