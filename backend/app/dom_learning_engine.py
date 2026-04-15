@@ -653,10 +653,22 @@ class DOMPatternLearner:
             logger.error(f"Error analizando rendimiento de iteración: {e}")
             return {'error': str(e)}
     
+    def _get_monitoring_db_path(self) -> str:
+        """Obtener ruta absoluta a monitoring.db desde Config.DATABASE_URL"""
+        try:
+            from backend.config import Config
+            url = Config.DATABASE_URL
+            # sqlite:///./monitoring.db → ./monitoring.db
+            if url.startswith('sqlite:///'):
+                return os.path.abspath(url.replace('sqlite:///', ''))
+        except Exception:
+            pass
+        return os.path.abspath('monitoring.db')
+
     def _get_baseline_time_per_agency(self) -> float:
         """Obtener tiempo baseline por agencia de iteraciones anteriores"""
         try:
-            conn = sqlite3.connect("monitoring.db")
+            conn = sqlite3.connect(self._get_monitoring_db_path())
             
             # Últimas 10 iteraciones exitosas
             query = """
@@ -719,14 +731,17 @@ class DOMPatternLearner:
     def get_recent_performance_trend(self) -> dict:
         """Analizar tendencia de rendimiento reciente para detectar problemas"""
         try:
-            # Usar conexión temporal en lugar de self.db
-            conn = sqlite3.connect(self.db_path)
+            conn = sqlite3.connect(self._get_monitoring_db_path())
             
             query = """
-            SELECT duration, total_agencies_processed, timestamp, optimization_level
+            SELECT 
+                (julianday(end_time) - julianday(start_time)) * 24 * 3600 as duration,
+                total_agencies_processed,
+                start_time,
+                status as optimization_level
             FROM monitoring_sessions 
-            WHERE timestamp >= datetime('now', '-2 hours')
-            ORDER BY timestamp DESC
+            WHERE start_time >= datetime('now', '-2 hours')
+            ORDER BY start_time DESC
             LIMIT 10
             """
             

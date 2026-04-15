@@ -1068,6 +1068,98 @@ body {
     background-color: rgba(13, 202, 240, 0.15) !important;
     color: #d7f4ff !important;
 }
+
+/* ===== Alert Status Tabs (nav-pills en card-header) ===== */
+.alert-status-tabs {
+    gap: 4px;
+}
+.alert-status-tabs .nav-link {
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    color: #6c757d;
+    background: transparent;
+    border: 1px solid transparent;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+.alert-status-tabs .nav-link::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: scale(0.6);
+}
+.alert-status-tabs .nav-link:hover {
+    color: #495057;
+    background: rgba(0,0,0,0.05);
+}
+.alert-status-tabs .nav-link.active {
+    color: #fff;
+    background: #0d6efd;
+    border-color: #0d6efd;
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.35);
+}
+.alert-status-tabs .nav-link.active::before {
+    opacity: 0.08;
+    transform: scale(1);
+}
+
+/* Liquid ripple animation on tab click */
+@keyframes tabLiquidRipple {
+    0%   { transform: scale(0); opacity: 0.5; }
+    60%  { opacity: 0.2; }
+    100% { transform: scale(2.5); opacity: 0; }
+}
+.alert-status-tabs .nav-link .tab-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.4);
+    width: 60px;
+    height: 60px;
+    margin-top: -30px;
+    margin-left: -30px;
+    pointer-events: none;
+    animation: tabLiquidRipple 0.6s ease-out forwards;
+}
+
+/* Alert table content transition */
+#alerts-table-body {
+    animation: tabFadeSlide 0.35s ease-out;
+}
+@keyframes tabFadeSlide {
+    0%   { opacity: 0; transform: translateY(6px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Dark mode — Alert Status Tabs */
+[data-theme="dark"] .alert-status-tabs .nav-link {
+    color: #adb5bd;
+}
+[data-theme="dark"] .alert-status-tabs .nav-link:hover {
+    color: #e0e0e0;
+    background: rgba(255,255,255,0.07);
+}
+[data-theme="dark"] .alert-status-tabs .nav-link.active {
+    color: #fff;
+    background: #4c8bf5;
+    border-color: #4c8bf5;
+    box-shadow: 0 2px 10px rgba(76, 139, 245, 0.4);
+}
+
+/* Dark mode — Iteration summary KPI cards */
+.ic-kpi-card {
+    background-color: #f8f9fa;
+}
+[data-theme="dark"] .ic-kpi-card {
+    background-color: #2a2f34 !important;
+}
+
 [data-theme="dark"] .alert-info {
     background-color: rgba(13, 202, 240, 0.12);
     border-color: rgba(13, 202, 240, 0.25);

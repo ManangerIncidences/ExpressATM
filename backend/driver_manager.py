@@ -1,6 +1,7 @@
 import os
+import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any
 
 
 def get_chromedriver_path() -> str:
@@ -43,3 +44,54 @@ def build_chrome_service():
     from selenium.webdriver.chrome.service import Service  # type: ignore
 
     return Service(get_chromedriver_path())
+
+
+def get_chrome_binary_path() -> Optional[str]:
+    """Detecta la ruta del binario de Chrome/Chromium en Windows de forma heurística.
+
+    Respeta la variable de entorno CHROME_BINARY si está presente.
+    Explora ubicaciones comunes de instalación para Windows.
+    """
+    env_bin = os.getenv("CHROME_BINARY")
+    if env_bin and Path(env_bin).exists():
+        return str(Path(env_bin).resolve())
+
+    candidates = []
+    # Rutas típicas en Windows
+    program_files = os.getenv("PROGRAMFILES", r"C:\\Program Files")
+    program_files_x86 = os.getenv("PROGRAMFILES(X86)", r"C:\\Program Files (x86)")
+    local_app_data = os.getenv("LOCALAPPDATA", os.path.expanduser(r"~\\AppData\\Local"))
+
+    candidates.extend([
+        Path(program_files) / "Google/Chrome/Application/chrome.exe",
+        Path(program_files_x86) / "Google/Chrome/Application/chrome.exe",
+        Path(local_app_data) / "Google/Chrome/Application/chrome.exe",
+        # Opcionales: soportar Chromium portable si se incluye en el repo
+        Path("drivers/chrome-win64/chrome.exe"),
+        Path("drivers/chrome-win/chrome.exe"),
+    ])
+
+    for p in candidates:
+        if p and Path(p).exists():
+            return str(Path(p).resolve())
+
+    return None
+
+
+def get_chrome_and_driver_info() -> Dict[str, Any]:
+    """Devuelve información útil de diagnóstico para Chrome/Driver.
+
+    Incluye rutas detectadas, env y notas, para logging/soporte.
+    """
+    info: Dict[str, Any] = {}
+    try:
+        info["env_CHROMEDRIVER_PATH"] = os.getenv("CHROMEDRIVER_PATH")
+        info["env_CHROME_BINARY"] = os.getenv("CHROME_BINARY")
+        try:
+            info["chromedriver_path"] = get_chromedriver_path()
+        except Exception as e:
+            info["chromedriver_path_error"] = str(e)
+        info["chrome_binary_path"] = get_chrome_binary_path()
+    except Exception as e:
+        info["error"] = str(e)
+    return info

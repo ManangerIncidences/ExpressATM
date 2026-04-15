@@ -51,9 +51,10 @@ class Alert(Base):
     previous_sales = Column(Float, nullable=True)
     growth_amount = Column(Float, nullable=True)
     
-    # Estado de la alerta
-    is_reported = Column(Boolean, default=False)
+    # Estado de la alerta (pendiente -> reportada -> confirmada)
+    status = Column(String, default='pendiente', index=True)  # 'pendiente', 'reportada', 'confirmada'
     reported_at = Column(DateTime, nullable=True)
+    confirmed_at = Column(DateTime, nullable=True)
     
     # Fechas
     alert_date = Column(DateTime, default=func.now())

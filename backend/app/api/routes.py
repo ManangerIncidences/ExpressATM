@@ -39,11 +39,13 @@ class AlertResponse(BaseModel):
     agency_name: str
     alert_type: str
     alert_message: str
+    lottery_type: Optional[str] = None
     current_sales: float
     current_balance: float
-    is_reported: bool
+    status: str = 'pendiente'
     alert_date: datetime
     reported_at: Optional[datetime] = None
+    confirmed_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True
@@ -127,7 +129,10 @@ def _query_alerts_for_export(db: Session, start_day: str | None, end_day: str | 
         except Exception:
             pass
     if reported is not None:
-        q = q.filter(Alert.is_reported == reported)
+        if reported:
+            q = q.filter(Alert.status.in_(['reportada', 'confirmada']))
+        else:
+            q = q.filter(Alert.status == 'pendiente')
     if alert_type:
         q = q.filter(Alert.alert_type == alert_type)
     return q.order_by(Alert.alert_day.desc(), Alert.created_at.desc()).all()
@@ -161,7 +166,8 @@ async def export_alerts(
             "mensaje": a.alert_message,
             "ventas": a.current_sales,
             "balance": a.current_balance,
-            "reportada": a.is_reported,
+            "reportada": a.status in ('reportada', 'confirmada'),
+            "estado": a.status,
             "reportada_at": a.reported_at.strftime('%Y-%m-%d %H:%M:%S') if a.reported_at else ''
         })
 
@@ -554,6 +560,7 @@ async def get_global_stats(
 async def get_alerts(
     today_only: bool = Query(True, description="Solo alertas de hoy"),
     reported: Optional[bool] = Query(None, description="Filtrar por estado reportado"),
+    status: Optional[str] = Query(None, description="Filtrar por estado: pendiente, reportada, confirmada"),
     alert_type: Optional[str] = Query(None, description="Filtrar por tipo de alerta"),
     db: Session = Depends(get_db)
 ):
@@ -564,8 +571,13 @@ async def get_alerts(
         today = date.today().isoformat()
         query = query.filter(Alert.alert_day == today)
     
-    if reported is not None:
-        query = query.filter(Alert.is_reported == reported)
+    if status:
+        query = query.filter(Alert.status == status)
+    elif reported is not None:
+        if reported:
+            query = query.filter(Alert.status.in_(['reportada', 'confirmada']))
+        else:
+            query = query.filter(Alert.status == 'pendiente')
     
     if alert_type:
         query = query.filter(Alert.alert_type == alert_type)
@@ -575,14 +587,16 @@ async def get_alerts(
 
 @router.post("/alerts/{alert_id}/report")
 async def report_alert(alert_id: int, db: Session = Depends(get_db)):
-    """Marcar una alerta como reportada"""
-    alert_system = AlertSystem()
-    success = alert_system.mark_alert_as_reported(alert_id, db)
-    
-    if success:
-        return {"message": "Alerta marcada como reportada", "alert_id": alert_id}
-    else:
+    """Marcar una alerta como reportada (legacy, usa transition internamente)"""
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
         raise HTTPException(status_code=404, detail="Alerta no encontrada")
+    if alert.status != 'pendiente':
+        return {"message": "Alerta ya procesada", "alert_id": alert_id}
+    alert.status = 'reportada'
+    alert.reported_at = datetime.now()
+    db.commit()
+    return {"message": "Alerta marcada como reportada", "alert_id": alert_id}
 
 @router.post("/alerts/{alert_id}/unreport")
 async def unreport_alert(alert_id: int, db: Session = Depends(get_db)):
@@ -592,12 +606,12 @@ async def unreport_alert(alert_id: int, db: Session = Depends(get_db)):
         alert = db.query(Alert).filter(Alert.id == alert_id).first()
         if not alert:
             raise HTTPException(status_code=404, detail="Alerta no encontrada")
-        # Solo permitir si es del día actual
         today = date.today().isoformat()
         if alert.alert_day != today:
             raise HTTPException(status_code=400, detail="Solo se puede desmarcar alertas del día actual")
-        alert.is_reported = False
+        alert.status = 'pendiente'
         alert.reported_at = None
+        alert.confirmed_at = None
         db.commit()
         return {"message": "Alerta revertida", "alert_id": alert_id}
     except HTTPException:
@@ -605,6 +619,28 @@ async def unreport_alert(alert_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="Error revirtiendo alerta")
+
+@router.post("/alerts/{alert_id}/transition")
+async def transition_alert(alert_id: int, db: Session = Depends(get_db)):
+    """Transicionar alerta al siguiente estado: pendiente -> reportada -> confirmada"""
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alerta no encontrada")
+    
+    transitions = {
+        'pendiente': ('reportada', 'reported_at'),
+        'reportada': ('confirmada', 'confirmed_at'),
+    }
+    
+    if alert.status not in transitions:
+        raise HTTPException(status_code=400, detail=f"No se puede transicionar desde estado '{alert.status}'")
+    
+    new_status, timestamp_field = transitions[alert.status]
+    alert.status = new_status
+    setattr(alert, timestamp_field, datetime.now())
+    db.commit()
+    
+    return {"message": f"Alerta transicionada a {new_status}", "alert_id": alert_id, "new_status": new_status}
 
 @router.get("/agencies", response_model=List[AgencyResponse])
 async def get_agencies(
@@ -619,7 +655,7 @@ async def get_agencies(
         # Obtener agencias que tienen alertas pendientes hoy
         agencies_with_alerts = db.query(Alert.agency_code).filter(
             Alert.alert_day == today,
-            Alert.is_reported == False
+            Alert.status == 'pendiente'
         ).distinct().all()
         
         agency_codes = [a.agency_code for a in agencies_with_alerts]
@@ -765,7 +801,7 @@ async def get_dashboard_data(db: Session = Depends(get_db)):
     # Alertas pendientes por tipo
     alerts_by_type = db.query(Alert.alert_type, func.count(Alert.id)).filter(
         Alert.alert_day == today,
-        Alert.is_reported == False
+        Alert.status == 'pendiente'
     ).group_by(Alert.alert_type).all()
     
     # Total de agencias monitoreadas hoy
@@ -781,19 +817,27 @@ async def get_dashboard_data(db: Session = Depends(get_db)):
     # Estado del monitoreo
     monitoring_status = monitoring_scheduler.get_status()
     
-    # Estadísticas de alertas
-    total_alerts_today = db.query(Alert).filter(Alert.alert_day == today).count()
-    reported_alerts_today = db.query(Alert).filter(
+    # Estadísticas de alertas — contar agencias únicas, no alertas individuales
+    pending_agencies_today = db.query(func.count(func.distinct(Alert.agency_code))).filter(
         Alert.alert_day == today,
-        Alert.is_reported == True
-    ).count()
+        Alert.status == 'pendiente'
+    ).scalar() or 0
+    reported_agencies_today = db.query(func.count(func.distinct(Alert.agency_code))).filter(
+        Alert.alert_day == today,
+        Alert.status == 'reportada'
+    ).scalar() or 0
+    confirmed_agencies_today = db.query(func.count(func.distinct(Alert.agency_code))).filter(
+        Alert.alert_day == today,
+        Alert.status == 'confirmada'
+    ).scalar() or 0
     
     return {
         "monitoring_status": monitoring_status,
         "alerts_summary": {
-            "total_today": total_alerts_today,
-            "pending": total_alerts_today - reported_alerts_today,
-            "reported": reported_alerts_today,
+            "total_today": pending_agencies_today + reported_agencies_today + confirmed_agencies_today,
+            "pending": pending_agencies_today,
+            "reported": reported_agencies_today,
+            "confirmed": confirmed_agencies_today,
             "by_type": dict(alerts_by_type)
         },
         "agencies_summary": {
@@ -865,6 +909,15 @@ async def disable_continuous_mode():
     result = monitoring_scheduler.disable_continuous_mode()
     return result
 
+@router.post("/monitoring/targeted/{site_id}")
+async def execute_targeted_scraping(site_id: str):
+    """Ejecutar scraping dirigido a un sitio específico (express o real)"""
+    result = monitoring_scheduler.execute_targeted_iteration(site_id)
+    if result["success"]:
+        return result
+    else:
+        raise HTTPException(status_code=400, detail=result.get("error", "Error"))
+
 @router.get("/logs")
 async def get_system_logs(
     level: Optional[str] = Query(None, description="Filtrar por nivel de log"),
@@ -924,7 +977,7 @@ async def get_daily_stats(
         # Contar alertas reportadas
         reported_alerts = db.query(Alert).filter(
             Alert.alert_day == day_str,
-            Alert.is_reported == True
+            Alert.status.in_(['reportada', 'confirmada'])
         ).count()
         
         # Calcular ventas totales
@@ -1984,4 +2037,518 @@ async def get_performance_insights():
         
     except Exception as e:
         logger.error(f"Error obteniendo insights: {e}")
-        return {"success": False, "error": str(e)} 
+        return {"success": False, "error": str(e)}
+
+
+# ========================================
+# 📊 RUTAS DE REPORTES
+# ========================================
+
+@router.get("/reports/agency-performance")
+async def report_agency_performance(
+    agency_codes: str = Query(..., description="Códigos separados por coma"),
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    group_by: str = Query("day", description="day|week|month"),
+    db: Session = Depends(get_db)
+):
+    """Rendimiento de agencias por periodo agrupado por día/semana/mes."""
+    from datetime import timedelta
+    codes = [c.strip() for c in agency_codes.split(",") if c.strip()]
+
+    records = db.query(SalesRecord).filter(
+        SalesRecord.agency_code.in_(codes),
+        SalesRecord.capture_day >= start_date,
+        SalesRecord.capture_day <= end_date,
+    ).order_by(SalesRecord.capture_day, SalesRecord.iteration_time).all()
+
+    def _bucket(day_str):
+        d = datetime.fromisoformat(day_str)
+        if group_by == "week":
+            iso = d.isocalendar()
+            return f"{iso[0]}-W{iso[1]:02d}"
+        elif group_by == "month":
+            return d.strftime("%Y-%m")
+        return day_str
+
+    from collections import defaultdict
+    buckets = defaultdict(lambda: defaultdict(lambda: {
+        "sales_list": [], "balance_list": [], "prizes_sum": 0.0, "iterations": 0
+    }))
+
+    for r in records:
+        bk = _bucket(r.capture_day)
+        key = (r.agency_code, r.agency_name, r.lottery_type)
+        entry = buckets[bk][key]
+        entry["sales_list"].append(float(r.sales or 0))
+        entry["balance_list"].append(float(r.balance or 0))
+        entry["prizes_sum"] += float(r.prizes or 0)
+        entry["iterations"] += 1
+
+    rows = []
+    for bk in sorted(buckets.keys()):
+        for (code, name, ltype), v in buckets[bk].items():
+            rows.append({
+                "period": bk,
+                "agency_code": code,
+                "agency_name": name,
+                "lottery_type": ltype,
+                "total_sales": max(v["sales_list"]) if v["sales_list"] else 0,
+                "avg_balance": sum(v["balance_list"]) / len(v["balance_list"]) if v["balance_list"] else 0,
+                "total_prizes": v["prizes_sum"],
+                "iterations": v["iterations"],
+            })
+
+    return {"rows": rows}
+
+
+@router.get("/reports/agency-day-detail")
+async def report_agency_day_detail(
+    agency_code: str = Query(...),
+    day: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Reutiliza endpoint existente de iteraciones por día."""
+    return await get_agency_day_iterations(agency_code, day, db)
+
+
+@router.get("/reports/agency-ranking")
+async def report_agency_ranking(
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    metric: str = Query("sales"),
+    lottery_type: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """Ranking de agencias por ventas o balance en un periodo.
+    Incluye variación respecto al periodo anterior de igual duración."""
+    from datetime import timedelta
+
+    d_start = datetime.fromisoformat(start_date).date()
+    d_end = datetime.fromisoformat(end_date).date()
+    span = (d_end - d_start).days + 1
+    prev_start = (d_start - timedelta(days=span)).isoformat()
+    prev_end = (d_start - timedelta(days=1)).isoformat()
+
+    def _aggregate(s_date, e_date):
+        q = db.query(
+            SalesRecord.agency_code,
+            SalesRecord.agency_name,
+            func.max(SalesRecord.sales).label("max_sales"),
+            func.avg(SalesRecord.balance).label("avg_balance"),
+        ).filter(
+            SalesRecord.capture_day >= s_date,
+            SalesRecord.capture_day <= e_date,
+        )
+        if lottery_type:
+            q = q.filter(SalesRecord.lottery_type == lottery_type)
+        return q.group_by(SalesRecord.agency_code, SalesRecord.agency_name).all()
+
+    current = _aggregate(start_date, end_date)
+    previous = {r.agency_code: r for r in _aggregate(prev_start, prev_end)}
+
+    ranking = []
+    for r in current:
+        val = float(r.max_sales or 0) if metric == "sales" else float(r.avg_balance or 0)
+        prev = previous.get(r.agency_code)
+        prev_val = None
+        variation = None
+        if prev:
+            prev_val = float(prev.max_sales or 0) if metric == "sales" else float(prev.avg_balance or 0)
+            if prev_val:
+                variation = ((val - prev_val) / prev_val) * 100
+
+        ranking.append({
+            "agency_code": r.agency_code,
+            "agency_name": r.agency_name,
+            "value": val,
+            "prev_value": prev_val,
+            "variation_pct": round(variation, 2) if variation is not None else None,
+        })
+
+    ranking.sort(key=lambda x: x["value"], reverse=True)
+    return {"ranking": ranking}
+
+
+@router.get("/reports/lottery-comparison")
+async def report_lottery_comparison(
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    group_by: str = Query("day"),
+    db: Session = Depends(get_db)
+):
+    """Comparativo de ventas entre sorteos agrupados por periodo."""
+    records = db.query(SalesRecord).filter(
+        SalesRecord.capture_day >= start_date,
+        SalesRecord.capture_day <= end_date,
+    ).all()
+
+    def _bucket(day_str):
+        d = datetime.fromisoformat(day_str)
+        if group_by == "week":
+            iso = d.isocalendar()
+            return f"{iso[0]}-W{iso[1]:02d}"
+        return day_str
+
+    from collections import defaultdict
+    buckets = defaultdict(lambda: defaultdict(float))
+    all_types = set()
+
+    for r in records:
+        bk = _bucket(r.capture_day)
+        lt = r.lottery_type or "DESCONOCIDO"
+        all_types.add(lt)
+        val = float(r.sales or 0)
+        if val > buckets[bk][lt]:
+            buckets[bk][lt] = val
+
+    rows = []
+    for bk in sorted(buckets.keys()):
+        row = {"period": bk, "total": 0}
+        for lt in all_types:
+            row[lt] = buckets[bk].get(lt, 0)
+            row["total"] += row[lt]
+        rows.append(row)
+
+    return {"rows": rows, "lottery_types": sorted(all_types)}
+
+
+@router.get("/reports/alert-history")
+async def report_alert_history(
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    agency_code: Optional[str] = Query(None),
+    lottery_type: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """Historial de alertas agregado por agencia."""
+    q = db.query(Alert).filter(
+        Alert.alert_day >= start_date,
+        Alert.alert_day <= end_date,
+    )
+    if agency_code:
+        q = q.filter(Alert.agency_code == agency_code)
+    if lottery_type:
+        q = q.filter(Alert.lottery_type == lottery_type)
+
+    alerts = q.all()
+
+    from collections import defaultdict
+    by_agency = defaultdict(lambda: {
+        "agency_name": "", "total": 0, "threshold": 0,
+        "growth_variation": 0, "sustained_growth": 0,
+        "lottery_types": set(), "days": set()
+    })
+
+    for a in alerts:
+        entry = by_agency[a.agency_code]
+        entry["agency_name"] = a.agency_name
+        entry["total"] += 1
+        if a.alert_type == "threshold":
+            entry["threshold"] += 1
+        elif a.alert_type == "growth_variation":
+            entry["growth_variation"] += 1
+        elif a.alert_type == "sustained_growth":
+            entry["sustained_growth"] += 1
+        if a.lottery_type:
+            entry["lottery_types"].add(a.lottery_type)
+        if a.alert_day:
+            entry["days"].add(a.alert_day)
+
+    agency_list = []
+    for code, v in by_agency.items():
+        agency_list.append({
+            "agency_code": code,
+            "agency_name": v["agency_name"],
+            "total_alerts": v["total"],
+            "threshold_count": v["threshold"],
+            "growth_variation_count": v["growth_variation"],
+            "sustained_growth_count": v["sustained_growth"],
+            "lottery_types": sorted(v["lottery_types"]),
+            "days_with_alerts": len(v["days"]),
+        })
+    agency_list.sort(key=lambda x: x["total_alerts"], reverse=True)
+
+    unique_days = set()
+    for a in alerts:
+        if a.alert_day:
+            unique_days.add(a.alert_day)
+
+    total = len(alerts)
+    days_count = len(unique_days)
+
+    return {
+        "total_alerts": total,
+        "agencies_count": len(agency_list),
+        "days_with_alerts": days_count,
+        "avg_per_day": round(total / days_count, 1) if days_count else 0,
+        "by_agency": agency_list,
+    }
+
+
+@router.get("/reports/activity-heatmap")
+async def report_activity_heatmap(
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    agency_code: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """Heatmap de actividad por hora y día."""
+    q = db.query(SalesRecord).filter(
+        SalesRecord.capture_day >= start_date,
+        SalesRecord.capture_day <= end_date,
+    )
+    if agency_code:
+        q = q.filter(SalesRecord.agency_code == agency_code)
+
+    records = q.all()
+
+    from collections import defaultdict
+    matrix = defaultdict(lambda: defaultdict(float))
+    max_val = 0
+
+    for r in records:
+        day = r.capture_day
+        hour = r.iteration_time.hour if r.iteration_time else 12
+        val = float(r.sales or 0)
+        if val > matrix[day][hour]:
+            matrix[day][hour] = val
+            if val > max_val:
+                max_val = val
+
+    # Build sorted day list
+    days = sorted(matrix.keys())
+
+    return {
+        "days": days,
+        "matrix": {d: dict(matrix[d]) for d in days},
+        "max_value": max_val,
+    }
+
+
+@router.get("/reports/confirmation-rate")
+async def report_confirmation_rate(
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Tasa de confirmación/reporte de alertas."""
+    alerts = db.query(Alert).filter(
+        Alert.alert_day >= start_date,
+        Alert.alert_day <= end_date,
+    ).all()
+
+    total = len(alerts)
+    pending = sum(1 for a in alerts if a.status == "pendiente")
+    reported = sum(1 for a in alerts if a.status == "reportada")
+    confirmed = sum(1 for a in alerts if a.status == "confirmada")
+
+    from collections import defaultdict
+    by_type = defaultdict(lambda: {"total": 0, "reported": 0, "confirmed": 0})
+    for a in alerts:
+        bt = by_type[a.alert_type]
+        bt["total"] += 1
+        if a.status in ("reportada", "confirmada"):
+            bt["reported"] += 1
+        if a.status == "confirmada":
+            bt["confirmed"] += 1
+
+    type_rows = []
+    for atype, v in by_type.items():
+        type_rows.append({
+            "alert_type": atype,
+            "total": v["total"],
+            "reported": v["reported"],
+            "confirmed": v["confirmed"],
+            "report_rate": (v["reported"] / v["total"] * 100) if v["total"] else 0,
+            "confirm_rate": (v["confirmed"] / v["total"] * 100) if v["total"] else 0,
+        })
+
+    return {
+        "total": total,
+        "pending": pending,
+        "reported": reported,
+        "confirmed": confirmed,
+        "report_rate": (reported + confirmed) / total * 100 if total else 0,
+        "confirm_rate": confirmed / total * 100 if total else 0,
+        "by_type": type_rows,
+        "daily_trend": _confirmation_daily_trend(alerts),
+        "avg_response_minutes": _avg_response_time(alerts),
+    }
+
+
+def _confirmation_daily_trend(alerts):
+    """Tendencia diaria de tasa de confirmación."""
+    from collections import defaultdict
+    by_day = defaultdict(lambda: {"total": 0, "reported": 0, "confirmed": 0})
+    for a in alerts:
+        d = a.alert_day or "unknown"
+        by_day[d]["total"] += 1
+        if a.status in ("reportada", "confirmada"):
+            by_day[d]["reported"] += 1
+        if a.status == "confirmada":
+            by_day[d]["confirmed"] += 1
+    rows = []
+    for day in sorted(by_day.keys()):
+        v = by_day[day]
+        rows.append({
+            "day": day,
+            "total": v["total"],
+            "reported": v["reported"],
+            "confirmed": v["confirmed"],
+            "report_rate": round(v["reported"] / v["total"] * 100, 1) if v["total"] else 0,
+        })
+    return rows
+
+
+def _avg_response_time(alerts):
+    """Tiempo promedio en minutos entre creación y reporte/confirmación."""
+    deltas = []
+    for a in alerts:
+        end_time = a.confirmed_at or a.reported_at
+        start_time = a.alert_date or a.created_at
+        if end_time and start_time:
+            diff = (end_time - start_time).total_seconds() / 60.0
+            if diff >= 0:
+                deltas.append(diff)
+    if not deltas:
+        return None
+    return round(sum(deltas) / len(deltas), 1)
+
+
+@router.get("/reports/global-summary")
+async def report_global_summary(
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    top_n: int = Query(20, description="Número de agencias a mostrar"),
+    db: Session = Depends(get_db)
+):
+    """Resumen global de rendimiento: KPIs + top agencias + distribución por sorteo."""
+    from collections import defaultdict
+
+    records = db.query(SalesRecord).filter(
+        SalesRecord.capture_day >= start_date,
+        SalesRecord.capture_day <= end_date,
+    ).all()
+
+    alerts = db.query(Alert).filter(
+        Alert.alert_day >= start_date,
+        Alert.alert_day <= end_date,
+    ).all()
+
+    # --- KPIs ---
+    agency_codes = set()
+    lottery_types = set()
+    days_active = set()
+    for r in records:
+        agency_codes.add(r.agency_code)
+        if r.lottery_type:
+            lottery_types.add(r.lottery_type)
+        if r.capture_day:
+            days_active.add(r.capture_day)
+
+    # Aggregate per agency: take max sales per day per lottery then sum across days
+    agency_day_max = defaultdict(lambda: defaultdict(float))  # (code, name) -> {day__lt: max_sales}
+    agency_balance = defaultdict(list)
+    agency_prizes = defaultdict(float)
+    agency_iters = defaultdict(int)
+    agency_names = {}
+
+    for r in records:
+        code = r.agency_code
+        agency_names[code] = r.agency_name
+        day_lt_key = f"{r.capture_day}__{r.lottery_type}"
+        val = float(r.sales or 0)
+        if val > agency_day_max[code][day_lt_key]:
+            agency_day_max[code][day_lt_key] = val
+        agency_balance[code].append(float(r.balance or 0))
+        agency_prizes[code] += float(r.prizes or 0)
+        agency_iters[code] += 1
+
+    agency_total_sales = {}
+    for code, day_map in agency_day_max.items():
+        agency_total_sales[code] = sum(day_map.values())
+
+    total_sales_global = sum(agency_total_sales.values())
+    total_agencies = len(agency_codes)
+    total_alerts = len(alerts)
+    avg_sales = total_sales_global / total_agencies if total_agencies else 0
+
+    # Alerts per agency
+    agency_alerts = defaultdict(int)
+    for a in alerts:
+        agency_alerts[a.agency_code] += 1
+
+    # --- Top N Agencies ---
+    ranked = sorted(agency_total_sales.items(), key=lambda x: x[1], reverse=True)[:top_n]
+    top_agencies = []
+    for i, (code, sales) in enumerate(ranked, 1):
+        bals = agency_balance.get(code, [])
+        top_agencies.append({
+            "rank": i,
+            "agency_code": code,
+            "agency_name": agency_names.get(code, code),
+            "total_sales": sales,
+            "avg_balance": sum(bals) / len(bals) if bals else 0,
+            "total_prizes": agency_prizes.get(code, 0),
+            "iterations": agency_iters.get(code, 0),
+            "alerts": agency_alerts.get(code, 0),
+            "pct_of_total": round(sales / total_sales_global * 100, 2) if total_sales_global else 0,
+        })
+
+    # --- Distribution by lottery type ---
+    lt_sales = defaultdict(float)
+    for r in records:
+        lt = r.lottery_type or "DESCONOCIDO"
+        # Use max per day per agency to avoid double-count
+    lt_day_agency = defaultdict(lambda: defaultdict(float))
+    for r in records:
+        lt = r.lottery_type or "DESCONOCIDO"
+        key = f"{r.capture_day}__{r.agency_code}"
+        val = float(r.sales or 0)
+        if val > lt_day_agency[lt][key]:
+            lt_day_agency[lt][key] = val
+
+    lottery_distribution = []
+    for lt, day_map in lt_day_agency.items():
+        total_lt = sum(day_map.values())
+        lottery_distribution.append({
+            "lottery_type": lt,
+            "total_sales": total_lt,
+            "pct": round(total_lt / total_sales_global * 100, 1) if total_sales_global else 0,
+        })
+    lottery_distribution.sort(key=lambda x: x["total_sales"], reverse=True)
+
+    # --- Daily trend ---
+    daily_sales = defaultdict(float)
+    for r in records:
+        day = r.capture_day
+        # Sum max sales per agency per lottery per day
+    day_agency_lt = defaultdict(lambda: defaultdict(float))
+    for r in records:
+        key = f"{r.agency_code}__{r.lottery_type}"
+        val = float(r.sales or 0)
+        if val > day_agency_lt[r.capture_day][key]:
+            day_agency_lt[r.capture_day][key] = val
+
+    daily_trend = []
+    for day in sorted(day_agency_lt.keys()):
+        daily_trend.append({
+            "day": day,
+            "total_sales": sum(day_agency_lt[day].values()),
+            "agencies": len(set(k.split("__")[0] for k in day_agency_lt[day].keys())),
+        })
+
+    return {
+        "kpis": {
+            "total_sales": total_sales_global,
+            "total_agencies": total_agencies,
+            "total_alerts": total_alerts,
+            "avg_sales_per_agency": avg_sales,
+            "days_in_period": len(days_active),
+            "lottery_types_count": len(lottery_types),
+        },
+        "top_agencies": top_agencies,
+        "lottery_distribution": lottery_distribution,
+        "daily_trend": daily_trend,
+    }

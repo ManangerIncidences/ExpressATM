@@ -61,6 +61,8 @@ class HybridMonitoringScheduler:
         }
         
         self.intelligence_enabled = False
+        self._total_iterations = 0  # Contador de iteraciones completadas
+        self._failed_sites = []     # Sitios que fallaron para reintento inteligente
         # === Estado de progreso (similar al scheduler clásico) ===
         import threading
         self._progress_lock = threading.Lock()
@@ -353,6 +355,12 @@ class HybridMonitoringScheduler:
                 except Exception as e:
                     logger.error(f"❌ Sitio {site_config.site_id} falló: {e}")
                     site_results[site_config.site_id] = []
+                    # Asegurar cleanup del scraper en caso de excepción
+                    if site_scrapers:
+                        try:
+                            site_scrapers[-1].cleanup_safe()
+                        except Exception:
+                            pass
             
             t_express = threading.Thread(target=_run_site, args=(SITE_EXPRESS, self._update_progress_step), daemon=True)
             t_real = threading.Thread(target=_run_site, args=(SITE_REAL, _real_progress_cb), daemon=True)
@@ -367,6 +375,19 @@ class HybridMonitoringScheduler:
                 logger.warning("⏱️ Timeout en sitio EXPRESS")
             if t_real.is_alive():
                 logger.warning("⏱️ Timeout en sitio REAL")
+            
+            # Forzar cleanup de todos los scrapers (incluso si hilos siguen vivos)
+            for s in site_scrapers:
+                try:
+                    s.cleanup_safe()
+                except Exception:
+                    pass
+            
+            # Detectar sitios que fallaron para reintento inteligente
+            for site_cfg in [SITE_EXPRESS, SITE_REAL]:
+                if not site_results.get(site_cfg.site_id):
+                    self._failed_sites.append(site_cfg)
+                    logger.warning(f"⚠️ Sitio {site_cfg.site_id} sin datos, marcado para reintento")
             
             # Combinar resultados parciales (resiliencia)
             scraped_data = []
@@ -793,10 +814,22 @@ class HybridMonitoringScheduler:
             }
         
         finally:
+            self._total_iterations += 1
             # Limpiar estado al finalizar
             import os
             current_pid = os.getpid()
-            logging.info(f"PID: {current_pid} - Proceso de monitoreo finalizado.")
+            logging.info(f"PID: {current_pid} - Proceso de monitoreo finalizado. Total iteraciones: {self._total_iterations}")
+            # Reintento inteligente: si algún sitio falló, programar reintento en 2 minutos
+            if self._failed_sites:
+                failed_copy = list(self._failed_sites)
+                self._failed_sites.clear()
+                logger.info(f"🔄 Programando reintento inteligente para sitios fallidos: {[s.site_id for s in failed_copy]} en 120s")
+                import threading
+                def _retry():
+                    time.sleep(120)
+                    if not self._progress.get("active"):
+                        self._execute_site_scraping(failed_copy)
+                threading.Thread(target=_retry, daemon=True).start()
 
         if result and result.get("status") == "success":
             return {"status": "completed", "message": "Monitoreo finalizado con éxito", "data": result}
@@ -830,6 +863,93 @@ class HybridMonitoringScheduler:
             'message': 'Modo continuo desactivado',
             'continuous_mode': False
         }
+    
+    def _execute_site_scraping(self, site_configs):
+        """Ejecutar scraping para una lista de sitios específicos (reintento o dirigido)"""
+        import threading
+        start_time = time.time()
+        logger.info(f"🎯 Ejecutando scraping dirigido para: {[s.site_id for s in site_configs]}")
+        
+        if not self._progress.get("active"):
+            self._start_progress()
+        
+        _real_generic_map = {"login": "login_real", "navigate": "navigate_real", "base_filters": "base_filters_real"}
+        def _real_progress_cb(key, status, message=None):
+            mapped = _real_generic_map.get(key, key)
+            self._update_progress_step(mapped, status, message)
+        
+        site_results = {}
+        site_scrapers = []
+        
+        def _run_site(site_config, cb):
+            try:
+                scraper = LotteryMonitorScraper(progress_callback=cb, site_config=site_config)
+                site_scrapers.append(scraper)
+                data = scraper.scrape_all_data()
+                site_results[site_config.site_id] = data or []
+                logger.info(f"✅ Sitio {site_config.site_id}: {len(data or [])} registros")
+            except Exception as e:
+                logger.error(f"❌ Sitio {site_config.site_id} falló: {e}")
+                site_results[site_config.site_id] = []
+        
+        threads = []
+        for sc in site_configs:
+            cb = _real_progress_cb if sc.site_id == "real" else self._update_progress_step
+            t = threading.Thread(target=_run_site, args=(sc, cb), daemon=True)
+            threads.append(t)
+            t.start()
+        
+        for t in threads:
+            t.join(timeout=600)
+        
+        for s in site_scrapers:
+            try:
+                s.cleanup_safe()
+            except Exception:
+                pass
+        
+        scraped_data = []
+        for data in site_results.values():
+            scraped_data.extend(data)
+        
+        if scraped_data:
+            with SessionLocal() as db:
+                alerts_generated = self.alert_system.process_agencies_data(scraped_data, db)
+            logger.info(f"✅ Scraping dirigido completado: {len(scraped_data)} agencias, {len(alerts_generated)} alertas en {time.time()-start_time:.2f}s")
+            self._total_iterations += 1
+        else:
+            alerts_generated = []
+            logger.warning("⚠️ Scraping dirigido sin datos obtenidos")
+        
+        self._finish_progress(bool(scraped_data))
+        return {
+            'success': bool(scraped_data),
+            'data_count': len(scraped_data),
+            'alerts_count': len(alerts_generated),
+            'sites': [s.site_id for s in site_configs],
+            'duration': time.time() - start_time
+        }
+    
+    def execute_targeted_iteration(self, site_id: str):
+        """Ejecutar scraping dirigido a un sitio específico desde la UI"""
+        site_map = {"express": SITE_EXPRESS, "real": SITE_REAL}
+        site_config = site_map.get(site_id)
+        if not site_config:
+            return {'success': False, 'error': f'Sitio desconocido: {site_id}'}
+        
+        if self._progress.get("active"):
+            return {'success': False, 'error': 'Ya hay una iteración en progreso'}
+        
+        import threading
+        def _run():
+            try:
+                self._execute_site_scraping([site_config])
+            except Exception as e:
+                logger.exception(f"Error en scraping dirigido {site_id}: %s", e)
+                self._finish_progress(False)
+        
+        threading.Thread(target=_run, daemon=True).start()
+        return {'success': True, 'message': f'Scraping dirigido a {site_id} iniciado'}
     
     def execute_manual_iteration(self):
         """🔄 Ejecutar una iteración manual de monitoreo"""
@@ -944,7 +1064,8 @@ class HybridMonitoringScheduler:
             # 'performance_metrics': self.get_performance_comparison(),
             # 🚀 Estado del modo continuo
             'continuous_mode': self.continuous_mode,
-            'continuous_delay': self.continuous_delay if self.continuous_mode else None
+            'continuous_delay': self.continuous_delay if self.continuous_mode else None,
+            'total_iterations': self._total_iterations
         }
         
         # Agregar tiempo de próxima ejecución del job de monitoreo

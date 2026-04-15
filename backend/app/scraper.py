@@ -106,6 +106,13 @@ class LotteryMonitorScraper:
             chrome_options.add_argument("--password-store=basic")
             chrome_options.add_argument("--use-mock-keychain")
             
+            # CACHE: perfil temporal único por sesión (evita conflictos de lock)
+            import tempfile
+            import shutil
+            self._profile_dir = tempfile.mkdtemp(prefix=f"expressatm_{self._site_id}_")
+            chrome_options.add_argument(f"--user-data-dir={self._profile_dir}")
+            chrome_options.add_argument("--disk-cache-size=52428800")
+            
             # CONFIGURACIÓN DE PANTALLA PARA MÚLTIPLES MONITORES
             chrome_options.add_argument("--window-size=1920,1080")  # Tamaño estándar
             chrome_options.add_argument("--window-position=0,0")     # Posición en monitor principal
@@ -177,7 +184,20 @@ class LotteryMonitorScraper:
             logger.info("Driver de Chrome configurado con configuración optimizada para velocidad y pantalla")
             
         except Exception as e:
-            logger.error(f"Error configurando driver: {str(e)}")
+            error_msg = str(e)
+            # Si Chrome crasheó por profile corrupto, matar zombies y limpiar profile
+            if 'DevToolsActivePort' in error_msg or 'Chrome failed to start: crashed' in error_msg:
+                # Primero matar procesos Chrome zombie que bloquean el profile
+                self._kill_chrome_processes()
+                if hasattr(self, '_profile_dir') and self._profile_dir:
+                    try:
+                        import shutil
+                        logger.warning(f"🧹 Limpiando profile corrupto: {self._profile_dir}")
+                        shutil.rmtree(self._profile_dir, ignore_errors=True)
+                        os.makedirs(self._profile_dir, exist_ok=True)
+                    except Exception as cleanup_err:
+                        logger.warning(f"No se pudo limpiar profile: {cleanup_err}")
+            logger.error(f"Error configurando driver: {error_msg}")
             raise
     
     def is_driver_alive(self) -> bool:
@@ -211,8 +231,11 @@ class LotteryMonitorScraper:
             if self.driver:
                 try:
                     self.driver.quit()
-                except:
-                    pass
+                except Exception:
+                    # quit() falló — matar a nivel OS
+                    self._kill_chrome_processes()
+                finally:
+                    self.driver = None
             
             # Recrear driver
             self.setup_driver()
@@ -1699,12 +1722,9 @@ class LotteryMonitorScraper:
                     except:
                         pass
                 
-                if not vision_active:
-                    # Safe cleanup del driver
-                    self.cleanup_safe()
-                    logger.info("Driver cerrado automaticamente")
-                else:
-                    logger.info("Driver mantenido activo para sistema de vision")
+                # Siempre cerrar el driver al terminar la iteración
+                self.cleanup_safe()
+                logger.info("Driver cerrado automaticamente")
             except Exception as e:
                 logger.warning(f"Error en limpieza automática: {e}")
                 # Forzar limpieza en caso de error
@@ -2059,6 +2079,30 @@ class LotteryMonitorScraper:
         except Exception as e:
             logger.error(f"Error cerrando driver: {str(e)}")
     
+    def _kill_chrome_processes(self):
+        """Matar procesos Chrome/ChromeDriver huérfanos asociados a este scraper"""
+        try:
+            import subprocess
+            # Intentar matar por PID del service (chromedriver) y sus hijos (chrome)
+            if hasattr(self, 'service') and self.service and hasattr(self.service, 'process') and self.service.process:
+                pid = self.service.process.pid
+                subprocess.run(
+                    ['taskkill', '/F', '/T', '/PID', str(pid)],
+                    capture_output=True, timeout=10
+                )
+                logger.info(f"Proceso ChromeDriver (PID {pid}) y children terminados")
+        except Exception as e:
+            logger.debug(f"Kill by service PID: {e}")
+        # Fallback: matar todos los chromedriver.exe (solo ExpressATM los usa)
+        try:
+            import subprocess
+            subprocess.run(
+                ['taskkill', '/F', '/IM', 'chromedriver.exe'],
+                capture_output=True, timeout=10
+            )
+        except Exception:
+            pass
+
     def cleanup_safe(self):
         """Limpiar recursos de forma segura sin fallar"""
         try:
@@ -2066,21 +2110,29 @@ class LotteryMonitorScraper:
             
             if hasattr(self, 'driver') and self.driver:
                 try:
-                    # Verificar si el driver está activo antes de cerrar
-                    _ = self.driver.title
                     self.driver.quit()
                     logger.info("✅ Driver cerrado correctamente")
-                except:
-                    # Si el driver ya está cerrado, solo limpiar la referencia
-                    logger.info("✓ Driver ya estaba cerrado, limpiando referencia")
+                except Exception:
+                    # driver.quit() falló — matar a nivel OS
+                    logger.warning("driver.quit() falló, matando procesos a nivel OS")
+                    self._kill_chrome_processes()
                 finally:
                     self.driver = None
             else:
                 logger.info("✓ No hay driver activo para cerrar")
+            
+            # Limpiar profile temporal
+            if hasattr(self, '_profile_dir') and self._profile_dir:
+                try:
+                    import shutil
+                    shutil.rmtree(self._profile_dir, ignore_errors=True)
+                except Exception:
+                    pass
+                self._profile_dir = None
                 
         except Exception as e:
             logger.warning(f"Advertencia durante cleanup seguro: {str(e)}")
-            # Asegurar que la referencia se limpie
+            self._kill_chrome_processes()
             try:
                 self.driver = None
             except:

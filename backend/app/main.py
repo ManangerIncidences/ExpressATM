@@ -88,6 +88,21 @@ try:
         def _ai():
             return _serve_html("ai.html")
 
+    if not _route_exists("/reports"):
+
+        @app.get("/reports", response_class=HTMLResponse)
+        def _reports():
+            return _serve_html("static/reports-dist/index.html")
+
+    if not _route_exists("/sw.js"):
+
+        @app.get("/sw.js")
+        def _service_worker():
+            sw_path = FRONTEND / "sw.js"
+            if sw_path.exists():
+                return FileResponse(str(sw_path), media_type="application/javascript")
+            return HTMLResponse("Not Found", status_code=404)
+
     # Favicon
     if not _route_exists("/favicon.ico"):
 
@@ -126,6 +141,14 @@ async def read_ai(request: Request):
 async def read_graph_dashboard(request: Request):
     """Servir la vista del dashboard gráfico"""
     return templates.TemplateResponse("dashboard.html", {"request": request})
+
+@app.get("/reports", response_class=HTMLResponse)
+async def read_reports(request: Request):
+    """Servir la vista de reportes"""
+    reports_html = Path(__file__).resolve().parents[2] / "frontend" / "static" / "reports-dist" / "index.html"
+    if reports_html.exists():
+        return HTMLResponse(reports_html.read_text(encoding="utf-8"))
+    return HTMLResponse("Reports not found", status_code=404)
 
 # Endpoint de bienvenida para la API
 @app.get("/api/v1/")

@@ -21,16 +21,14 @@ class AlertSystem:
             
         agency_name_lower = agency_name.lower()
         
-        # Filtros por nombre
-        skip_keywords = [
-            'suriel',
-            'total general'
-        ]
+        # Filtrar SURIEL solo si la configuración lo indica
+        if getattr(Config, 'FILTER_SURIEL', True) and 'suriel' in agency_name_lower:
+            return True
         
-        for keyword in skip_keywords:
-            if keyword in agency_name_lower:
-                return True
-                
+        # Filtrar TOTAL GENERAL solo si la configuración lo indica
+        if getattr(Config, 'FILTER_TOTAL_GENERAL', True) and 'total general' in agency_name_lower:
+            return True
+            
         return False
     
     def _ensure_agency_exists(self, db: Session, agency_code: str, agency_name: str) -> Agency:
@@ -164,11 +162,12 @@ class AlertSystem:
         """Verificar y generar alertas para una agencia EN UNA LOTERÍA ESPECÍFICA"""
         alerts = []
         agency_code = agency_data["agency_code"]
-        # Omitir alertas si la agencia ya tiene una alerta reportada hoy
+        # Omitir alertas si la agencia ya tiene una alerta reportada/confirmada hoy PARA ESTE SORTEO
         reported_alert = db.query(Alert).filter(
             Alert.agency_code == agency_code,
             Alert.alert_day == today,
-            Alert.is_reported == True
+            Alert.lottery_type == lottery_type,
+            Alert.status.in_(['reportada', 'confirmada'])
         ).first()
         if reported_alert:
             logger.debug(f"🔕 Se omiten alertas para {agency_code} ya reportado hoy")
@@ -208,9 +207,10 @@ class AlertSystem:
                 Alert.alert_day == today
             ).first()
             if existing_alert:
-                if not existing_alert.is_reported:
+                if existing_alert.status == 'pendiente':
                     existing_alert.current_sales = sales
                     existing_alert.current_balance = balance
+                    existing_alert.alert_date = datetime.now()
                     existing_alert.alert_message = f"Umbral superado en {lottery_type} - Balance: ${balance:,.2f} (>= ${self.thresholds['balance_threshold']:,.2f}) Ventas: ${sales:,.2f} (>= ${self.thresholds['sales_threshold']:,.2f})"
                     db.add(existing_alert)
                 # Si ya fue reportada, no hacer nada
@@ -267,11 +267,12 @@ class AlertSystem:
                     Alert.alert_day == today
                 ).first()
                 if existing_alert:
-                    if not existing_alert.is_reported:
+                    if existing_alert.status == 'pendiente':
                         existing_alert.current_sales = current_sales
                         existing_alert.current_balance = agency_data["balance"]
                         existing_alert.previous_sales = previous_record.sales
                         existing_alert.growth_amount = sales_variation
+                        existing_alert.alert_date = datetime.now()
                         existing_alert.alert_message = f"Crecimiento significativo en {lottery_type}: +${sales_variation:,.2f} desde última iteración (${previous_record.sales:,.2f} → ${current_sales:,.2f})"
                         db.add(existing_alert)
                     return None
@@ -325,10 +326,11 @@ class AlertSystem:
                     Alert.alert_day == today
                 ).first()
                 if existing_alert:
-                    if not existing_alert.is_reported:
+                    if existing_alert.status == 'pendiente':
                         existing_alert.current_sales = recent_records[0].sales
                         existing_alert.current_balance = agency_data["balance"]
                         existing_alert.growth_amount = sum(growth_increments)
+                        existing_alert.alert_date = datetime.now()
                         existing_alert.alert_message = f"Crecimiento sostenido en {lottery_type}: incrementos de {growth_increments} (Total: +${sum(growth_increments):,.2f})"
                         db.add(existing_alert)
                     return None
@@ -364,7 +366,7 @@ class AlertSystem:
         
         return db.query(Alert).filter(
             Alert.alert_day == today,
-            Alert.is_reported == False
+            Alert.status == 'pendiente'
         ).order_by(Alert.created_at.desc()).all()
     
     def mark_alert_as_reported(self, alert_id: int, db: Session) -> bool:
@@ -372,7 +374,7 @@ class AlertSystem:
         try:
             alert = db.query(Alert).filter(Alert.id == alert_id).first()
             if alert:
-                alert.is_reported = True
+                alert.status = 'reportada'
                 alert.reported_at = datetime.now()
                 db.commit()
                 logger.info(f"Alerta {alert_id} marcada como reportada")

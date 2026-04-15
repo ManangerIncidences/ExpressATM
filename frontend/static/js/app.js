@@ -6,6 +6,7 @@ class MonitoringApp {
         this.refreshInterval = null;
         this.autoRefreshEnabled = true;
         this.currentAlerts = [];
+        this._activeAlertStatus = 'pendiente'; // Estado activo del tab de alertas
     // ==== Resumen de cambios de iteración ====
     this._lastAlertsSnapshot = new Map(); // agency_code -> snapshot
     this._iterationChangesBuffer = [];     // Cambios acumulados mientras la pestaña está oculta o hasta mostrar
@@ -235,6 +236,36 @@ class MonitoringApp {
         const alertFilter = document.getElementById('alert-type-filter');
         if (alertFilter) alertFilter.addEventListener('change', () => this.loadAlerts());
 
+        // Barra de búsqueda de agencias
+        const alertSearch = document.getElementById('alert-search-input');
+        if (alertSearch) alertSearch.addEventListener('input', () => this.filterAlertsBySearch());
+
+        // Cablear headers sortables
+        document.querySelectorAll('.sortable').forEach(th => {
+            th.addEventListener('click', () => this.sortAlertsTable(th.dataset.sort));
+        });
+
+        // Tabs de estado de alertas
+        document.querySelectorAll('#alertStatusTabs .nav-link').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                this._activeAlertStatus = tab.dataset.status;
+                document.querySelectorAll('#alertStatusTabs .nav-link').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                // Liquid ripple
+                const ripple = document.createElement('span');
+                ripple.classList.add('tab-ripple');
+                const rect = tab.getBoundingClientRect();
+                ripple.style.left = (e.clientX - rect.left) + 'px';
+                ripple.style.top = (e.clientY - rect.top) + 'px';
+                tab.appendChild(ripple);
+                ripple.addEventListener('animationend', () => ripple.remove());
+                // Re-trigger table animation
+                const tbody = document.getElementById('alerts-table-body');
+                if (tbody) { tbody.style.animation = 'none'; tbody.offsetHeight; tbody.style.animation = ''; }
+                this.loadAlerts();
+            });
+        });
+
         // Modal de confirmación
         const confirmBtn = document.getElementById('confirm-action');
         if (confirmBtn) confirmBtn.addEventListener('click', () => this.executeConfirmedAction());
@@ -250,6 +281,12 @@ class MonitoringApp {
         if (reportedAlertsCard) {
             reportedAlertsCard.addEventListener('click', () => this.showReportedAgencies());
         }
+
+        // Botones de scraping dirigido
+        const scrapeExpress = document.getElementById('scrape-express');
+        if (scrapeExpress) scrapeExpress.addEventListener('click', () => this.executeTargetedScraping('express'));
+        const scrapeReal = document.getElementById('scrape-real');
+        if (scrapeReal) scrapeReal.addEventListener('click', () => this.executeTargetedScraping('real'));
 
         // KPI clickeable - Optimización AI (solo en ai.html)
         const optimizationsCard = document.getElementById('optimizations-card');
@@ -355,11 +392,21 @@ class MonitoringApp {
         const totalAgenciesEl = document.getElementById('total-agencies');
         const pendingAlertsEl = document.getElementById('pending-alerts');
         const reportedAlertsEl = document.getElementById('reported-alerts');
+        const confirmedAlertsEl = document.getElementById('confirmed-alerts');
         const statusElement = document.getElementById('monitoring-state');
 
         if (totalAgenciesEl) totalAgenciesEl.textContent = data.agencies_summary.total_monitored_today;
         if (pendingAlertsEl) pendingAlertsEl.textContent = data.alerts_summary.pending;
         if (reportedAlertsEl) reportedAlertsEl.textContent = data.alerts_summary.reported;
+        if (confirmedAlertsEl) confirmedAlertsEl.textContent = data.alerts_summary.confirmed || 0;
+
+        // Actualizar contadores de tabs
+        const tabPendiente = document.getElementById('tab-count-pendiente');
+        const tabReportada = document.getElementById('tab-count-reportada');
+        const tabConfirmada = document.getElementById('tab-count-confirmada');
+        if (tabPendiente) tabPendiente.textContent = data.alerts_summary.pending || 0;
+        if (tabReportada) tabReportada.textContent = data.alerts_summary.reported || 0;
+        if (tabConfirmada) tabConfirmada.textContent = data.alerts_summary.confirmed || 0;
 
     if (statusElement) {
             const isRunning = data.monitoring_status.is_running;
@@ -428,11 +475,13 @@ class MonitoringApp {
         // Firmar incluyendo el contador de iteración para no deduplicar iteraciones "sin cambios"
         const iterationId = (typeof this.lastIterationCount === 'number' ? String(this.lastIterationCount) : String(now));
         const signatureBase = iterationId + '|' + (changes.map(c=>c.agency_code+':'+c.deltaSales+':'+c.deltaBalance+':'+c.deltaAlerts).join('|')+'|'+newAlertAgencies.map(n=>n.agency_code).join(','));
-        const sig = signatureBase?this.simpleHash(signatureBase):null; if(sig && this._lastIterationSignature===sig) return; this._lastIterationSignature=sig;
+        const sig = signatureBase?this.simpleHash(signatureBase):null;
+        // Siempre disparar push y sonido en cada iteración completada
+        this.maybePlayIterationSound(); this.maybeSendIterationPush(changes,newAlertAgencies,now);
+        if(sig && this._lastIterationSignature===sig) return; this._lastIterationSignature=sig;
         // Registrar batch aunque no haya cambios para disparar sonido/push/modal de fin de iteración
         this._iterationChangesBuffer.push({at:now,changes,newAgencies:newAlertAgencies}); this._pendingIterationCount++;
         console.debug('[detectIterationChanges] cambios registrados batches=', this._iterationChangesBuffer.length, 'agencias con cambios', changes.length, 'nuevas alertas', newAlertAgencies.length);
-        this.maybePlayIterationSound(); this.maybeSendIterationPush(changes,newAlertAgencies,now);
         if(this.settings?.autoShowIterationSummary && !document.hidden && !this._iterationModalOpen){ if(Date.now()-this._lastIterationModalShownAt>this.iterationModalCooldownMs){ this.showIterationChangesModal(); } }
     }
 
@@ -471,30 +520,52 @@ class MonitoringApp {
                 const fmtDelta = v => (v>0?'+':'') + v.toLocaleString('es-DO');
                 const fmtAgo = ms => { if(ms==null)return'--'; const s=Math.floor(ms/1000); if(s<60)return s+'s'; const m=Math.floor(s/60); if(m<60)return m+'m'; return Math.floor(m/60)+'h'; };
 
+                // KPI: Total delta ventas
+                const totalDeltaSales = usingRows.reduce((sum, r) => sum + (r.deltaSales || 0), 0);
+                const totalDeltaEl = document.getElementById('ic-total-delta-sales');
+                if (totalDeltaEl) {
+                    totalDeltaEl.textContent = (totalDeltaSales >= 0 ? '+' : '') + fmtMoney(totalDeltaSales);
+                    totalDeltaEl.className = `fs-4 fw-bold ${totalDeltaSales > 0 ? 'text-success' : totalDeltaSales < 0 ? 'text-danger' : 'text-muted'}`;
+                }
+
                 container.innerHTML = `
                     <div class="table-responsive">
-                        <table class="table table-sm align-middle iteration-summary-table">
+                        <table class="table table-sm table-hover align-middle iteration-summary-table mb-0">
                             <thead class="${this.isDarkTheme() ? 'table-dark' : 'table-light'}">
                                 <tr>
-                                    <th>Agencia</th><th class="text-end">Δ Ventas</th><th class="text-end">Ventas</th><th class="text-end">Δ Balance</th><th class="text-end">Balance</th><th class="text-center">Alertas</th><th class="text-center">Δ Alertas</th><th class="text-center">Último Cambio</th><th></th>
+                                    <th>Agencia</th>
+                                    <th class="text-end">Δ Ventas</th>
+                                    <th class="text-end">Ventas</th>
+                                    <th class="text-end">Δ Balance</th>
+                                    <th class="text-end">Balance</th>
+                                    <th class="text-center">Alertas</th>
+                                    <th class="text-center">Δ Alertas</th>
+                                    <th class="text-center">Hace</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${usingRows.length ? usingRows.map(r=>`<tr>
+                                ${usingRows.length ? usingRows.map(r=>{
+                                    const salesBar = r.deltaSales > 0 ? `<div class="progress mt-1" style="height:3px;"><div class="progress-bar bg-success" style="width:${Math.min(100, Math.abs(r.deltaSales) / (Math.max(...usingRows.map(x=>Math.abs(x.deltaSales))) || 1) * 100)}%"></div></div>` : '';
+                                    return `<tr>
                                     <td style="max-width:360px;">
                                         <div class="fw-bold text-truncate" title="${r.agency_code} | ${(r.agency_name||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}">
                                             ${r.agency_code} | ${(r.agency_name||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
                                         </div>
                                     </td>
-                                    <td class="text-end ${r.deltaSales>0?'text-success':(r.deltaSales<0?'text-danger':'text-muted')}">${fmtDelta(r.deltaSales)}</td>
+                                    <td class="text-end">
+                                        <span class="${r.deltaSales>0?'text-success fw-bold':(r.deltaSales<0?'text-danger':'text-muted')}">${fmtDelta(r.deltaSales)}</span>
+                                        ${salesBar}
+                                    </td>
                                     <td class="text-end">${fmtMoney(r.sales)}</td>
                                     <td class="text-end ${r.deltaBalance>0?'text-success':(r.deltaBalance<0?'text-danger':'text-muted')}">${fmtDelta(r.deltaBalance)}</td>
                                     <td class="text-end">${fmtMoney(r.balance)}</td>
-                                    <td class="text-center">${r.alertsCount}</td>
-                                    <td class="text-center">${r.deltaAlerts?fmtDelta(r.deltaAlerts):'-'}</td>
-                                    <td class="text-center">${fmtAgo(r.lastChangeAgoMs)}</td>
-                                    <td class="text-end"><button class="btn btn-sm btn-outline-primary" onclick="app.showAgencyDetails('${r.agency_code}')"><i class='fas fa-chart-line'></i></button></td>
-                                </tr>`).join('') : '<tr><td colspan="9" class="text-center text-muted">Sin cambios de ventas en las iteraciones acumuladas</td></tr>'}
+                                    <td class="text-center"><span class="badge ${r.alertsCount > 0 ? 'bg-warning text-dark' : 'bg-secondary'}">${r.alertsCount}</span></td>
+                                    <td class="text-center">${r.deltaAlerts ? `<span class="badge ${r.deltaAlerts > 0 ? 'bg-danger' : 'bg-success'}">${fmtDelta(r.deltaAlerts)}</span>` : '<span class="text-muted">-</span>'}</td>
+                                    <td class="text-center"><small class="text-muted">${fmtAgo(r.lastChangeAgoMs)}</small></td>
+                                    <td class="text-end"><button class="btn btn-sm btn-outline-primary" onclick="app.showAgencyDetails('${r.agency_code}')" title="Ver historial"><i class='fas fa-chart-line'></i></button></td>
+                                </tr>`;
+                                }).join('') : '<tr><td colspan="9" class="text-center text-muted py-4"><i class="fas fa-check-circle fa-2x mb-2 d-block text-success"></i>Sin cambios de ventas en las iteraciones acumuladas</td></tr>'}
                             </tbody>
                         </table>
                     </div>`;
@@ -606,6 +677,15 @@ class MonitoringApp {
     }
 
     ensureNotificationPermission() {
+        // Registrar Service Worker siempre (independiente del setting de push)
+        if ('serviceWorker' in navigator && !this._swRegistration) {
+            navigator.serviceWorker.register('/sw.js').then(reg => {
+                this._swRegistration = reg;
+                console.log('[SW] Service Worker registrado para push en background');
+            }).catch(err => {
+                console.warn('[SW] Error registrando Service Worker:', err);
+            });
+        }
         if (!('Notification' in window)) return;
         if (!this.settings?.enableIterationPush) return;
         if (Notification.permission === 'default') {
@@ -616,14 +696,31 @@ class MonitoringApp {
     maybeSendIterationPush(changes, newAlertAgencies, nowTs) {
         if (!this.settings?.enableIterationPush) return;
         if (!('Notification' in window)) return;
+        // Solicitar permiso si aún no se ha pedido (usuario activó el setting después de cargar)
+        if (Notification.permission === 'default') {
+            try { Notification.requestPermission(); } catch(_) {}
+            return;
+        }
         if (Notification.permission !== 'granted') return;
         if (nowTs - this._lastIterationPushAt < 3000) return;
-        const agenciesChanged = changes.length; // considerar cualquier cambio (ventas, balance o alertas +/-)
+        const agenciesChanged = changes.length;
         const title = 'Iteración completada';
         const body = `${agenciesChanged} con cambios • ${newAlertAgencies.length} nuevas en alerta`;
         try {
-            const n = new Notification(title, { body, icon: '/favicon.ico', badge: '/favicon.ico', tag: 'iter-summary', renotify: true, timestamp: nowTs });
-            n.onclick = () => { window.focus(); try { this.showIterationChangesModal(); } catch(_) {} };
+            // Usar Service Worker para notificaciones en background
+            if (this._swRegistration && this._swRegistration.active) {
+                this._swRegistration.active.postMessage({
+                    type: 'SHOW_NOTIFICATION',
+                    title,
+                    body,
+                    tag: 'iter-summary',
+                    icon: '/logos/expressatm-icon.svg'
+                });
+            } else {
+                // Fallback a Notification API directa
+                const n = new Notification(title, { body, icon: '/favicon.ico', badge: '/favicon.ico', tag: 'iter-summary', renotify: true, timestamp: nowTs });
+                n.onclick = () => { window.focus(); try { this.showIterationChangesModal(); } catch(_) {} };
+            }
             this._lastIterationPushAt = nowTs;
         } catch(_) {}
     }
@@ -903,14 +1000,13 @@ class MonitoringApp {
         try {
             const filterEl = document.getElementById('alert-type-filter');
             const alertType = filterEl ? filterEl.value : '';
-            // cache-busting para evitar respuestas obsoletas que reintroduzcan filas ya reportadas
-            // Control de secuencia: ignorar respuestas viejas si llegan tarde
+            const statusFilter = this._activeAlertStatus || 'pendiente';
             if (typeof this._alertsFetchSeq === 'undefined') {
                 this._alertsFetchSeq = 0;
                 this._alertsFetchApplied = -1;
             }
             const seq = ++this._alertsFetchSeq;
-            let url = `${this.apiBase}/alerts?reported=false&_ts=${Date.now()}`;
+            let url = `${this.apiBase}/alerts?status=${statusFilter}&_ts=${Date.now()}`;
             
             if (alertType) {
                 url += `&alert_type=${alertType}`;
@@ -927,10 +1023,10 @@ class MonitoringApp {
 
             // Filtrar agencias en proceso de reporte o recién reportadas para evitar “rebote” visual
             if (this._reportingAgencies && this._reportingAgencies.size) {
-                alerts = alerts.filter(a => !this._reportingAgencies.has(a.agency_code));
+                alerts = alerts.filter(a => !this._reportingAgencies.has(`${a.agency_code}__${a.lottery_type}`));
             }
             if (this._recentlyReportedAgencies && this._recentlyReportedAgencies.size) {
-                alerts = alerts.filter(a => !this._recentlyReportedAgencies.has(a.agency_code));
+                alerts = alerts.filter(a => !this._recentlyReportedAgencies.has(`${a.agency_code}__${a.lottery_type}`));
             }
 
             this.currentAlerts = alerts;
@@ -968,30 +1064,56 @@ class MonitoringApp {
         // Agrupar alertas por agencia
         const groupedAlerts = this.groupAlertsByAgency(alerts);
 
+        // Aplicar ordenamiento activo a los grupos
+        if (this.sortState.column) {
+            groupedAlerts.sort((a, b) => {
+                let valueA, valueB;
+                if (this.sortState.column === 'sales') {
+                    valueA = a.current_sales || 0;
+                    valueB = b.current_sales || 0;
+                } else if (this.sortState.column === 'balance') {
+                    valueA = a.current_balance || 0;
+                    valueB = b.current_balance || 0;
+                }
+                return this.sortState.direction === 'asc' ? valueA - valueB : valueB - valueA;
+            });
+        }
+
         groupedAlerts.forEach(group => {
             const row = document.createElement('tr');
-            row.dataset.agid = group.agency_code;
-            if (!previousIds.has(group.agency_code)) {
+            const groupKey = `${group.agency_code}__${group.lottery_type}`;
+            row.dataset.agid = groupKey;
+            if (!previousIds.has(groupKey)) {
                 row.classList.add('new-alert'); // sólo agencias nuevas en el set de alertas
             }
-            const reporting = (this._reportingAgencies && this._reportingAgencies.has(group.agency_code));
+            const reporting = (this._reportingAgencies && this._reportingAgencies.has(groupKey));
             const btnDisabledAttr = reporting ? 'disabled' : '';
             const btnExtraClass = reporting ? ' btn-reporting' : '';
-            const btnLabel = reporting ? '<span class="reporting-inline-spinner"><span class="spinner-border spinner-border-sm" role="status"></span><span>Reportando...</span></span>' : '<i class="fas fa-check"></i> Reportar';
             
-            // ✨ NUEVO: Crear etiquetas de tipos de lotería
-            const lotteryBadges = group.lottery_types.map(type => {
-                const displayName = type === 'CHANCE_EXPRESS' ? 'CHANCE' : 
-                                 type === 'CHANCE_EXTRAORDINARIO' ? 'CHANCE EXTRA' :
-                                 type === 'RULETA_EXPRESS' ? 'RULETA' : 
-                                 type.replace(/_/g, ' ');
-                const badgeClass = type === 'CHANCE_EXPRESS' ? 'bg-primary' : 
-                                 type === 'CHANCE_EXTRAORDINARIO' ? 'bg-warning' :
-                                 type === 'RULETA_EXPRESS' ? 'bg-danger' : 'bg-info';
-                return `<span class="badge ${badgeClass} me-1 mb-1">
-                    🎯 ${displayName}
-                </span>`;
-            }).join('');
+            // Botones según estado activo
+            const currentStatus = this._activeAlertStatus || 'pendiente';
+            let actionButton = '';
+            if (currentStatus === 'pendiente') {
+                const btnLabel = reporting ? '<span class="reporting-inline-spinner"><span class="spinner-border spinner-border-sm" role="status"></span><span>Reportando...</span></span>' : '<i class="fas fa-paper-plane"></i> Reportar';
+                actionButton = `<button class="btn btn-primary btn-action${btnExtraClass}" ${btnDisabledAttr} onclick="app.transitionMultipleAlerts('${group.agency_code}', '${group.lottery_type}')" title="Reportar alertas de ${group.lottery_type.replace(/_/g, ' ')}">
+                    ${btnLabel}
+                </button>`;
+            } else if (currentStatus === 'reportada') {
+                const btnLabel = reporting ? '<span class="reporting-inline-spinner"><span class="spinner-border spinner-border-sm" role="status"></span><span>Confirmando...</span></span>' : '<i class="fas fa-check-double"></i> Confirmar';
+                actionButton = `<button class="btn btn-success btn-action${btnExtraClass}" ${btnDisabledAttr} onclick="app.transitionMultipleAlerts('${group.agency_code}', '${group.lottery_type}')" title="Confirmar alertas de ${group.lottery_type.replace(/_/g, ' ')}">
+                    ${btnLabel}
+                </button>`;
+            }
+            // confirmada: sin botón de acción
+            
+            // Etiqueta de tipo de lotería (una por fila)
+            const displayName = group.lottery_type.replace(/_/g, ' ');
+            const badgeClass = group.lottery_type === 'CHANCE_EXPRESS' ? 'bg-primary' : 
+                             group.lottery_type === 'CHANCE_EXTRAORDINARIO' ? 'bg-warning' :
+                             group.lottery_type === 'RULETA_EXPRESS' ? 'bg-danger' : 'bg-info';
+            const lotteryBadges = `<span class="badge ${badgeClass} me-1 mb-1">
+                🎯 ${displayName}
+            </span>`;
             
             // Crear etiquetas de tipos de alerta
             const alertBadges = group.alert_types.map(type => 
@@ -1010,9 +1132,11 @@ class MonitoringApp {
                     </div>
                 </td>
                 <td>
-                    <div class="lottery-badges mb-1">
+                    <div class="lottery-badges">
                         ${lotteryBadges}
                     </div>
+                </td>
+                <td>
                     <div class="alert-badges">
                         ${alertBadges}
                     </div>
@@ -1032,11 +1156,12 @@ class MonitoringApp {
                     ${this.formatTimeAgo(group.latest_alert_date)}
                 </td>
                 <td>
-                    <button class="btn btn-success btn-action${btnExtraClass}" ${btnDisabledAttr} onclick="app.reportMultipleAlerts('${group.agency_code}')" title="Reportar todas las alertas de la agencia">
-                        ${btnLabel}
-                    </button>
+                    ${actionButton}
                     <button class="btn btn-info btn-action ms-1" onclick="app.showAgencyDetails('${group.agency_code}')" title="Detalles de la agencia">
                         <i class="fas fa-info-circle"></i> Detalles
+                    </button>
+                    <button class="btn btn-outline-secondary btn-action ms-1" onclick="app.copyAlertToClipboard('${group.agency_code}', '${group.lottery_type}')" title="Copiar alerta">
+                        <i class="fas fa-copy"></i>
                     </button>
                 </td>
             `;
@@ -1048,14 +1173,15 @@ class MonitoringApp {
         const grouped = {};
         
         alerts.forEach(alert => {
-            const key = alert.agency_code;
+            const lotteryType = alert.lottery_type || 'UNKNOWN';
+            const key = `${alert.agency_code}__${lotteryType}`;
             
             if (!grouped[key]) {
                 grouped[key] = {
                     agency_code: alert.agency_code,
                     agency_name: alert.agency_name,
                     alert_types: [],
-                    lottery_types: [],
+                    lottery_type: lotteryType,
                     messages: [],
                     current_sales: alert.current_sales,
                     current_balance: alert.current_balance,
@@ -1067,11 +1193,6 @@ class MonitoringApp {
             // Agregar tipo de alerta si no existe
             if (!grouped[key].alert_types.includes(alert.alert_type)) {
                 grouped[key].alert_types.push(alert.alert_type);
-            }
-            
-            // Agregar tipo de lotería si no existe
-            if (alert.lottery_type && !grouped[key].lottery_types.includes(alert.lottery_type)) {
-                grouped[key].lottery_types.push(alert.lottery_type);
             }
             
             // Agregar mensaje si no existe
@@ -1089,6 +1210,39 @@ class MonitoringApp {
         });
         
         return Object.values(grouped);
+    }
+
+    copyAlertToClipboard(agencyCode, lotteryType) {
+        const agencyAlerts = (this.currentAlerts || []).filter(a => a.agency_code === agencyCode && a.lottery_type === lotteryType);
+        if (!agencyAlerts.length) return;
+
+        const grouped = this.groupAlertsByAgency(agencyAlerts)[0];
+        const sorteo = grouped.lottery_type.replace(/_/g, ' ');
+
+        const text = `*¡Validar esta agencia con venta alta en ${sorteo} y confirmarnos por favor si son correctas!* @\n\n*Terminal:* ${grouped.agency_name}\n\n> *Ventas Jugadas:* ${this.formatMoney(grouped.current_sales)}\n> *Balance Final:* ${this.formatMoney(grouped.current_balance)}`;
+
+        navigator.clipboard.writeText(text).then(() => {
+            this.showNotification('Alerta copiada al portapapeles', 'success');
+        }).catch(() => {
+            this.showNotification('Error al copiar', 'error');
+        });
+    }
+
+    filterAlertsBySearch() {
+        const searchInput = document.getElementById('alert-search-input');
+        const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+        if (!this.currentAlerts) return;
+
+        if (!query) {
+            this.renderAlertsTable(this.currentAlerts);
+            return;
+        }
+
+        const filtered = this.currentAlerts.filter(a =>
+            (a.agency_name && a.agency_name.toLowerCase().includes(query)) ||
+            (a.agency_code && a.agency_code.toLowerCase().includes(query))
+        );
+        this.renderAlertsTable(filtered);
     }
 
     async softRefresh() {
@@ -1183,10 +1337,16 @@ class MonitoringApp {
         const startButton = document.getElementById('start-monitoring');
         const stopButton = document.getElementById('stop-monitoring');
         const manualButton = document.getElementById('manual-iteration');
+        const scrapeExpressBtn = document.getElementById('scrape-express');
+        const scrapeRealBtn = document.getElementById('scrape-real');
         
         if (startButton) startButton.disabled = isRunning;
         if (stopButton) stopButton.disabled = !isRunning;
         if (manualButton) manualButton.disabled = isRunning;
+        // Deshabilitar botones de scraping dirigido cuando el monitoreo está activo o hay un scraping en curso
+        const disableTargeted = isRunning || this._progressActive;
+        if (scrapeExpressBtn) scrapeExpressBtn.disabled = disableTargeted;
+        if (scrapeRealBtn) scrapeRealBtn.disabled = disableTargeted;
     }
 
     startCountdown = () => {
@@ -1326,6 +1486,30 @@ class MonitoringApp {
             this.showNotification('Error ejecutando iteración manual', 'error');
         } finally {
             this.setButtonLoading('manual-iteration', false);
+        }
+    }
+
+    async executeTargetedScraping(siteId) {
+        const btnId = `scrape-${siteId}`;
+        try {
+            this.setButtonLoading(btnId, true);
+            this.startProgressPolling(true);
+            
+            const response = await fetch(`${this.apiBase}/monitoring/targeted/${siteId}`, {
+                method: 'POST'
+            });
+            const result = await response.json();
+            
+            if (response.ok) {
+                this.showNotification(`Scraping dirigido a ${siteId.toUpperCase()} iniciado`, 'success');
+            } else {
+                this.showNotification(`Error: ${result.detail || result.error}`, 'error');
+            }
+        } catch (error) {
+            console.error(`Error ejecutando scraping dirigido ${siteId}:`, error);
+            this.showNotification(`Error ejecutando scraping de ${siteId.toUpperCase()}`, 'error');
+        } finally {
+            this.setButtonLoading(btnId, false);
         }
     }
 
@@ -1763,6 +1947,54 @@ class MonitoringApp {
         }
     }
 
+    async transitionMultipleAlerts(agencyCode, lotteryType) {
+        try {
+            this._suspendIterationDetectionUntil = Date.now() + 2500;
+            const agencyAlerts = this.currentAlerts.filter(alert => alert.agency_code === agencyCode && alert.lottery_type === lotteryType);
+            
+            if (agencyAlerts.length === 0) {
+                this.showNotification('No se encontraron alertas para transicionar', 'warning');
+                return;
+            }
+
+            const groupKey = `${agencyCode}__${lotteryType}`;
+            if (!this._reportingAgencies) this._reportingAgencies = new Set();
+            if (this._reportingAgencies.has(groupKey)) return;
+            this._reportingAgencies.add(groupKey);
+
+            // Re-render para mostrar spinner
+            this.renderAlertsTable(this.currentAlerts);
+
+            const promises = agencyAlerts.map(alert => 
+                fetch(`${this.apiBase}/alerts/${alert.id}/transition`, { method: 'POST' })
+            );
+
+            // Eliminación optimista
+            this.currentAlerts = this.currentAlerts.filter(a => !(a.agency_code === agencyCode && a.lottery_type === lotteryType));
+            this.renderAlertsTable(this.currentAlerts);
+
+            const results = await Promise.all(promises).finally(() => { this._reportingAgencies.delete(groupKey); });
+            const successCount = results.filter(r => r?.ok).length;
+            
+            const statusLabel = this._activeAlertStatus === 'pendiente' ? 'reportadas' : 'confirmadas';
+            if (successCount === agencyAlerts.length) {
+                this.showNotification(`${successCount} alertas marcadas como ${statusLabel}`, 'success');
+            } else if (successCount > 0) {
+                this.showNotification(`${successCount} de ${agencyAlerts.length} alertas ${statusLabel}`, 'warning');
+            } else {
+                this.showNotification('No se pudieron transicionar las alertas', 'error');
+            }
+            
+            setTimeout(() => { this.loadAlerts(); }, 320);
+            setTimeout(() => { this.loadDashboardData(); }, 450);
+
+        } catch (error) {
+            console.error('Error transicionando alertas:', error);
+            this.showNotification('Error procesando alertas', 'error');
+            if (this._reportingAgencies) this._reportingAgencies.delete(agencyCode);
+        }
+    }
+
     // =============================
     // Exportación de Incidencias
     // =============================
@@ -1916,7 +2148,7 @@ class MonitoringApp {
     // Listar agencias con alertas reportadas hoy y la hora de reporte
     async showReportedAgencies() {
         try {
-            const resp = await fetch(`${this.apiBase}/alerts?today_only=true&reported=true`);
+            const resp = await fetch(`${this.apiBase}/alerts?today_only=true&status=reportada`);
             if (!resp.ok) {
                 throw new Error(`HTTP ${resp.status}`);
             }
@@ -2029,7 +2261,7 @@ class MonitoringApp {
     async unreportAgencyAlerts(agencyCode) {
         try {
             // Obtener alertas reportadas de la agencia para hoy
-            const resp = await fetch(`${this.apiBase}/alerts?today_only=true&reported=true`);
+            const resp = await fetch(`${this.apiBase}/alerts?today_only=true&status=reportada`);
             if (!resp.ok) return;
             const alerts = await resp.json();
             const toRevert = alerts.filter(a=>a.agency_code===agencyCode);
@@ -2398,11 +2630,12 @@ class MonitoringApp {
 
     setButtonLoading(buttonId, isLoading) {
         const button = document.getElementById(buttonId);
+        if (!button) return;
         const icon = button.querySelector('i');
         
         if (isLoading) {
             button.disabled = true;
-            icon.className = 'fas fa-spinner fa-spin';
+            if (icon) icon.className = 'fas fa-spinner fa-spin';
         } else {
             button.disabled = false;
             // Restaurar icono original basado en el ID del botón
@@ -2410,9 +2643,11 @@ class MonitoringApp {
                 'start-monitoring': 'fas fa-play',
                 'stop-monitoring': 'fas fa-stop',
                 'manual-iteration': 'fas fa-sync',
-                'refresh-btn': 'fas fa-sync-alt'
+                'refresh-btn': 'fas fa-sync-alt',
+                'scrape-express': 'fas fa-bolt',
+                'scrape-real': 'fas fa-star'
             };
-            icon.className = iconMap[buttonId] || 'fas fa-cog';
+            if (icon) icon.className = iconMap[buttonId] || 'fas fa-cog';
         }
     }
 
@@ -2458,19 +2693,24 @@ class MonitoringApp {
     }
 
     formatTimeAgo(dateString) {
+        if (!dateString) return '—';
+        // El servidor envía datetime.now() (hora local) sin zona horaria
+        // new Date() sin indicador de zona lo trata como hora local (ES2015+)
         const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '—';
         const now = new Date();
         const diffMs = now - date;
+        if (diffMs < 0) return 'Ahora';
         const diffMins = Math.floor(diffMs / 60000);
         
         if (diffMins < 1) return 'Ahora';
-        if (diffMins < 60) return `${diffMins}m`;
+        if (diffMins < 60) return `hace ${diffMins}m`;
         
         const diffHours = Math.floor(diffMins / 60);
-        if (diffHours < 24) return `${diffHours}h`;
+        if (diffHours < 24) return `hace ${diffHours}h ${diffMins % 60}m`;
         
         const diffDays = Math.floor(diffHours / 24);
-        return `${diffDays}d`;
+        return `hace ${diffDays}d`;
     }
 
     truncateText(text, maxLength) {
@@ -2762,38 +3002,14 @@ class MonitoringApp {
 
     sortAlertsTable(column) {
         if (this.sortState.column === column) {
-            // Cambiar dirección si es la misma columna
             this.sortState.direction = this.sortState.direction === 'asc' ? 'desc' : 'asc';
         } else {
-            // Nueva columna, empezar con ascendente
             this.sortState.column = column;
             this.sortState.direction = 'asc';
         }
-
-        // Actualizar iconos
         this.updateSortIcons();
-
-        // Ordenar alertas
-        const sortedAlerts = [...this.currentAlerts].sort((a, b) => {
-            let valueA, valueB;
-
-            if (column === 'sales') {
-                valueA = a.current_sales || 0;
-                valueB = b.current_sales || 0;
-            } else if (column === 'balance') {
-                valueA = a.current_balance || 0;
-                valueB = b.current_balance || 0;
-            }
-
-            if (this.sortState.direction === 'asc') {
-                return valueA - valueB;
-            } else {
-                return valueB - valueA;
-            }
-        });
-
-        // Re-renderizar tabla
-        this.renderAlertsTable(sortedAlerts);
+        // Re-renderizar — el ordenamiento se aplica dentro de renderAlertsTable
+        this.renderAlertsTable(this.currentAlerts);
     }
 
     updateSortIcons() {
