@@ -275,7 +275,7 @@ class LotteryMonitorScraper:
                     # Para errores críticos, limpiar el driver sin retry
                     try:
                         self.cleanup_safe()
-                    except:
+                    except Exception:
                         pass
                     raise e
                 
@@ -290,7 +290,7 @@ class LotteryMonitorScraper:
                     # Reinicializar driver solo para errores no críticos
                     try:
                         self.refresh_driver()
-                    except:
+                    except Exception:
                         pass
                 else:
                     logger.error(f"Todos los intentos fallaron para {func.__name__}")
@@ -949,7 +949,7 @@ class LotteryMonitorScraper:
                     logger.warning("JavaScript no confirmó la configuración, intentando método fallback")
                     # Fallback al método anterior si JavaScript falla
                     return self.set_filters_fallback()
-            except:
+            except Exception:
                 logger.warning("No se pudo verificar resultado JavaScript")
                 return self.set_filters_fallback()
                 
@@ -1019,7 +1019,7 @@ class LotteryMonitorScraper:
                             wrapper.click()
                             wrapper_encontrado = True
                             break
-                        except:
+                        except Exception:
                             continue
                     
                     if not wrapper_encontrado:
@@ -1074,7 +1074,7 @@ class LotteryMonitorScraper:
                             logger.info("✅ 3. Monto: 10000")
                             input_encontrado = True
                             break
-                        except:
+                        except Exception:
                             continue
                     
                     if not input_encontrado:
@@ -1120,13 +1120,13 @@ class LotteryMonitorScraper:
                                 logger.info("🎯 Clic en icono de flecha de Lotería")
                                 wrapper_encontrado = True
                                 break
-                            except:
+                            except Exception:
                                 # Fallback: usar select wrapper
                                 wrapper.click()
                                 logger.info("🎯 Clic en select wrapper de Lotería (fallback)")
                                 wrapper_encontrado = True
                                 break
-                        except:
+                        except Exception:
                             continue
                     
                     if not wrapper_encontrado:
@@ -1231,7 +1231,7 @@ class LotteryMonitorScraper:
             try:
                 self.driver.save_screenshot("error_busqueda.png")
                 logger.info("Captura de pantalla guardada: error_busqueda.png")
-            except:
+            except Exception:
                 pass
                 
             return False
@@ -1320,7 +1320,7 @@ class LotteryMonitorScraper:
                                 if elem.is_displayed() and elem.text.strip() not in ["Sin datos", "No data", ""]:
                                     loading_visible = True
                                     break
-                            except:
+                            except Exception:
                                 continue
                         if loading_visible:
                             break
@@ -1348,7 +1348,7 @@ class LotteryMonitorScraper:
                                 cell_texts = [cell.text.strip() for cell in cells[:3]]
                                 if any(text and text != "-" and text != "..." for text in cell_texts):
                                     valid_rows += 1
-                        except:
+                        except Exception:
                             continue
                     
                     if valid_rows == 0:
@@ -1612,7 +1612,7 @@ class LotteryMonitorScraper:
             try:
                 self.driver.save_screenshot("error_extraccion.png")
                 logger.info("📸 Captura de pantalla guardada: error_extraccion.png")
-            except:
+            except Exception:
                 pass
                 
             return []
@@ -1715,7 +1715,7 @@ class LotteryMonitorScraper:
                         # Verificar si hay monitoreo preventivo activo
                         vision_active = getattr(self.vision_engine, 'monitoring_active', False)
                         logger.info(f"Sistema de vision activo: {vision_active}")
-                    except:
+                    except Exception:
                         pass
                 
                 # Siempre cerrar el driver al terminar la iteración
@@ -1726,7 +1726,7 @@ class LotteryMonitorScraper:
                 # Forzar limpieza en caso de error
                 try:
                     self.cleanup_safe()
-                except:
+                except Exception:
                     pass
     
     def set_base_filters(self) -> bool:
@@ -1808,7 +1808,7 @@ class LotteryMonitorScraper:
                             wrapper.click()
                             wrapper_encontrado = True
                             break
-                        except:
+                        except Exception:
                             continue
                     
                     if not wrapper_encontrado:
@@ -1862,7 +1862,7 @@ class LotteryMonitorScraper:
                             logger.info("✅ 3. Monto: 10000")
                             input_encontrado = True
                             break
-                        except:
+                        except Exception:
                             continue
                     
                     if not input_encontrado:
@@ -1988,14 +1988,14 @@ class LotteryMonitorScraper:
                     try:
                         wrapper = nivel.find_element(By.CSS_SELECTOR, ".el-select__caret")
                         logger.info("Usando icono de flecha")
-                    except:
+                    except Exception:
                         wrapper = nivel.find_element(By.CSS_SELECTOR, ".el-select__wrapper")
                         logger.info("Usando wrapper")
                     
                     wrapper.click()
                     wrapper_encontrado = True
                     break
-                except:
+                except Exception:
                     continue
             
             if not wrapper_encontrado:
@@ -2135,7 +2135,7 @@ class LotteryMonitorScraper:
             self._kill_chrome_processes()
             try:
                 self.driver = None
-            except:
+            except Exception:
                 pass
     
     def __del__(self):
@@ -2314,7 +2314,7 @@ class LotteryMonitorScraper:
                 else:
                     logger.error(f"✗ JavaScript no pudo seleccionar '{target_text}' en {field_name}")
                     return False
-            except:
+            except Exception:
                 logger.warning(f"No se pudo verificar resultado de JavaScript para {field_name}")
                 return False
                 
@@ -2588,7 +2588,7 @@ class LotteryMonitorScraper:
                 else:
                     logger.warning(f"CSS selector falló para {field_name}")
                     return False
-            except:
+            except Exception:
                 logger.warning(f"No se pudo verificar resultado CSS para {field_name}")
                 return False
                 

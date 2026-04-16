@@ -50,7 +50,7 @@ drivers/chromedriver
 Thumbs.db
 
 # Logs
-logs/*.log
+logs/
 
 # Node modules (si usas Node.js)
 node_modules/

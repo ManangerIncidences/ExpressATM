@@ -10,6 +10,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from datetime import datetime
+from contextlib import asynccontextmanager
 
 # Crear directorio de logs ANTES de configurar handlers
 os.makedirs("logs", exist_ok=True)
@@ -34,11 +35,29 @@ try:
 except ImportError:
     VERSION = "2.2.3"
 
+# Lifespan: reemplaza on_event("startup"/"shutdown") deprecados
+@asynccontextmanager
+async def lifespan(app):
+    # Startup
+    logging.info("ExpressATM iniciado")
+    logging.info("Dashboard disponible")
+    logging.info("Documentacion API disponible")
+    yield
+    # Shutdown
+    try:
+        from .scheduler_hybrid import monitoring_scheduler
+        if monitoring_scheduler.is_running:
+            monitoring_scheduler.stop_monitoring()
+    except Exception:
+        pass
+    logging.info("ExpressATM detenido")
+
 # Inicializar la aplicación FastAPI
 app = FastAPI(
     title="ExpressATM",
     description="Plataforma de monitoreo y análisis de agencias de lotería",
-    version=VERSION
+    version=VERSION,
+    lifespan=lifespan
 )
 
 # Inicializar base de datos
@@ -110,8 +129,20 @@ except Exception as e:
 # Health check para monitoreo del VPS
 @app.get("/health")
 async def health_check():
+    from .database import SessionLocal
+    from sqlalchemy import text
+    db_status = "ok"
+    try:
+        db = SessionLocal()
+        try:
+            db.execute(text("SELECT 1"))
+        finally:
+            db.close()
+    except Exception:
+        db_status = "error"
     return JSONResponse({
-        "status": "ok",
+        "status": "ok" if db_status == "ok" else "degraded",
+        "db": db_status,
         "timestamp": datetime.now().isoformat(),
         "version": app.version
     })
@@ -179,25 +210,6 @@ async def api_root():
             "docs": "/docs"
         }
     }
-
-# Manejo de eventos de inicio y cierre
-@app.on_event("startup")
-async def startup_event():
-    """Eventos al iniciar la aplicación"""
-    logging.info("ExpressATM iniciado")
-    logging.info("Dashboard disponible")
-    logging.info("Documentacion API disponible")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Eventos al cerrar la aplicación"""
-    try:
-        from .scheduler_hybrid import monitoring_scheduler
-        if monitoring_scheduler.is_running:
-            monitoring_scheduler.stop_monitoring()
-    except Exception:
-        pass
-    logging.info("ExpressATM detenido")
 
 if __name__ == "__main__":
     import uvicorn

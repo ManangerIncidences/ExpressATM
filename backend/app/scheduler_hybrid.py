@@ -67,6 +67,7 @@ class HybridMonitoringScheduler:
         # === Estado de progreso (similar al scheduler clásico) ===
         import threading
         self._progress_lock = threading.Lock()
+        self._state_lock = threading.Lock()    # Protege _total_iterations, _failed_sites, performance_metrics, continuous_mode
         self._progress = {"active": False, "steps": []}
 
         logger.info("Scheduler hibrido inicializado (scrapers lazy)")
@@ -387,7 +388,8 @@ class HybridMonitoringScheduler:
             # Detectar sitios que fallaron para reintento inteligente
             for site_cfg in [SITE_EXPRESS, SITE_REAL]:
                 if not site_results.get(site_cfg.site_id):
-                    self._failed_sites.append(site_cfg)
+                    with self._state_lock:
+                        self._failed_sites.append(site_cfg)
                     logger.warning(f"⚠️ Sitio {site_cfg.site_id} sin datos, marcado para reintento")
             
             # Combinar resultados parciales (resiliencia)
@@ -431,8 +433,9 @@ class HybridMonitoringScheduler:
             self._update_progress_step("generate_alerts", "success")
             
             duration = time.time() - start_time
-            self.performance_metrics['classic']['count'] += 1
-            self.performance_metrics['classic']['total_time'] += duration
+            with self._state_lock:
+                self.performance_metrics['classic']['count'] += 1
+                self.performance_metrics['classic']['total_time'] += duration
             
             express_count = len(site_results.get("express", []))
             real_count = len(site_results.get("real", []))
@@ -451,7 +454,8 @@ class HybridMonitoringScheduler:
             
         except Exception as e:
             duration = time.time() - start_time
-            self.performance_metrics['classic']['errors'] += 1
+            with self._state_lock:
+                self.performance_metrics['classic']['errors'] += 1
             logger.error(f"❌ Error en iteración clásica: {e}")
             
             if not vision_activated:
@@ -704,8 +708,9 @@ class HybridMonitoringScheduler:
             self._update_progress_step("generate_alerts", "success")
             
             duration = time.time() - start_time
-            self.performance_metrics['intelligent']['count'] += 1
-            self.performance_metrics['intelligent']['total_time'] += duration
+            with self._state_lock:
+                self.performance_metrics['intelligent']['count'] += 1
+                self.performance_metrics['intelligent']['total_time'] += duration
             
             logger.info(f"🧠 Iteración inteligente completada: {len(scraped_data)} agencias, {len(alerts_generated)} alertas en {duration:.2f}s")
             
@@ -722,7 +727,8 @@ class HybridMonitoringScheduler:
             
         except Exception as e:
             duration = time.time() - start_time
-            self.performance_metrics['intelligent']['errors'] += 1
+            with self._state_lock:
+                self.performance_metrics['intelligent']['errors'] += 1
             logger.error(f"❌ Error en iteración inteligente: {e}")
             
             self._update_progress_step("complete", "error", str(e))
@@ -819,15 +825,17 @@ class HybridMonitoringScheduler:
             }
         
         finally:
-            self._total_iterations += 1
+            with self._state_lock:
+                self._total_iterations += 1
             # Limpiar estado al finalizar
             import os
             current_pid = os.getpid()
             logging.info(f"PID: {current_pid} - Proceso de monitoreo finalizado. Total iteraciones: {self._total_iterations}")
             # Reintento inteligente: si algún sitio falló, programar reintento en 2 minutos
-            if self._failed_sites:
+            with self._state_lock:
                 failed_copy = list(self._failed_sites)
                 self._failed_sites.clear()
+            if failed_copy:
                 logger.info(f"🔄 Programando reintento inteligente para sitios fallidos: {[s.site_id for s in failed_copy]} en 120s")
                 import threading
                 def _retry():
@@ -843,8 +851,9 @@ class HybridMonitoringScheduler:
 
     def enable_continuous_mode(self, delay_seconds: int = 10):
         """🚀 Activar modo continuo de ejecución (para pruebas)"""
-        self.continuous_mode = True
-        self.continuous_delay = delay_seconds
+        with self._state_lock:
+            self.continuous_mode = True
+            self.continuous_delay = delay_seconds
         logger.info(f"🚀 MODO CONTINUO ACTIVADO: {delay_seconds}s entre ejecuciones")
         return {
             'success': True,
@@ -855,7 +864,8 @@ class HybridMonitoringScheduler:
     
     def disable_continuous_mode(self):
         """🛑 Desactivar modo continuo de ejecución"""
-        self.continuous_mode = False
+        with self._state_lock:
+            self.continuous_mode = False
         # Cancelar job continuo si existe
         try:
             self.scheduler.remove_job('continuous_iteration')
@@ -923,7 +933,8 @@ class HybridMonitoringScheduler:
             # Verificar helper de re-alertado tras procesar alertas
             check_helper_reentry()
             logger.info(f"✅ Scraping dirigido completado: {len(scraped_data)} agencias, {len(alerts_generated)} alertas en {time.time()-start_time:.2f}s")
-            self._total_iterations += 1
+            with self._state_lock:
+                self._total_iterations += 1
         else:
             alerts_generated = []
             logger.warning("⚠️ Scraping dirigido sin datos obtenidos")
@@ -1061,19 +1072,20 @@ class HybridMonitoringScheduler:
     
     def get_status(self):
         """Obtener estado del scheduler"""
-        status = {
-            'is_running': self.is_running,
-            'monitoring_interval': Config.MONITORING_INTERVAL,
-            'use_intelligent_system': self.use_intelligent_system,
-            'intelligent_percentage': self.intelligent_percentage,
-            'comparison_mode': self.comparison_mode,
-            'intelligent_system_available': INTELLIGENT_SYSTEM_AVAILABLE,
-            # 'performance_metrics': self.get_performance_comparison(),
-            # 🚀 Estado del modo continuo
-            'continuous_mode': self.continuous_mode,
-            'continuous_delay': self.continuous_delay if self.continuous_mode else None,
-            'total_iterations': self._total_iterations
-        }
+        with self._state_lock:
+            status = {
+                'is_running': self.is_running,
+                'monitoring_interval': Config.MONITORING_INTERVAL,
+                'use_intelligent_system': self.use_intelligent_system,
+                'intelligent_percentage': self.intelligent_percentage,
+                'comparison_mode': self.comparison_mode,
+                'intelligent_system_available': INTELLIGENT_SYSTEM_AVAILABLE,
+                # 'performance_metrics': self.get_performance_comparison(),
+                # 🚀 Estado del modo continuo
+                'continuous_mode': self.continuous_mode,
+                'continuous_delay': self.continuous_delay if self.continuous_mode else None,
+                'total_iterations': self._total_iterations
+            }
         
         # Agregar tiempo de próxima ejecución del job de monitoreo
         try:
@@ -1141,14 +1153,16 @@ class HybridMonitoringScheduler:
             
             # Crear nueva sesión de monitoreo
             db = SessionLocal()
-            session = MonitoringSession(
-                session_date=date.today().isoformat(),
-                status="active"
-            )
-            db.add(session)
-            db.commit()
-            self.current_session_id = session.id
-            db.close()
+            try:
+                session = MonitoringSession(
+                    session_date=date.today().isoformat(),
+                    status="active"
+                )
+                db.add(session)
+                db.commit()
+                self.current_session_id = session.id
+            finally:
+                db.close()
             
             # Configurar tarea programada
             self.scheduler.add_job(
@@ -1199,9 +1213,10 @@ class HybridMonitoringScheduler:
                     db.close()
 
             # 2. Resetear contadores internos
-            old_iterations = self._total_iterations
-            self._total_iterations = 0
-            self._failed_sites = []
+            with self._state_lock:
+                old_iterations = self._total_iterations
+                self._total_iterations = 0
+                self._failed_sites = []
 
             # 3. Limpiar caches de scrapers
             if self._classic_scraper:
@@ -1219,10 +1234,11 @@ class HybridMonitoringScheduler:
                 self._intelligent_scraper = None
 
             # 4. Resetear métricas de comparación
-            self.performance_metrics = {
-                'classic': {'count': 0, 'total_time': 0, 'errors': 0},
-                'intelligent': {'count': 0, 'total_time': 0, 'errors': 0}
-            }
+            with self._state_lock:
+                self.performance_metrics = {
+                    'classic': {'count': 0, 'total_time': 0, 'errors': 0},
+                    'intelligent': {'count': 0, 'total_time': 0, 'errors': 0}
+                }
 
             # 5. Crear nueva sesión para el día siguiente (se activará en minutos)
             db = SessionLocal()
@@ -1259,13 +1275,15 @@ class HybridMonitoringScheduler:
             # Actualizar sesión actual como completada
             if self.current_session_id:
                 db = SessionLocal()
-                session = db.query(MonitoringSession).filter(
-                    MonitoringSession.id == self.current_session_id
-                ).first()
-                if session:
-                    session.status = "completed"
-                    db.commit()
-                db.close()
+                try:
+                    session = db.query(MonitoringSession).filter(
+                        MonitoringSession.id == self.current_session_id
+                    ).first()
+                    if session:
+                        session.status = "completed"
+                        db.commit()
+                finally:
+                    db.close()
             
             self.is_running = False
             logger.info("⏹️ Monitoreo híbrido detenido")

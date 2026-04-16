@@ -679,20 +679,42 @@ async def get_agencies(
             # Obtener todas las agencias (comportamiento anterior)
             agencies = db.query(Agency).all()
     
-    # Enriquecer con datos más recientes DEL DÍA DE HOY
+    # Enriquecer con datos más recientes DEL DÍA DE HOY (batch query en vez de N+1)
+    agency_codes_list = [a.code for a in agencies]
+    
+    if agency_codes_list:
+        if today_only:
+            # Subquery: max iteration_time por agency_code HOY
+            latest_sub = db.query(
+                SalesRecord.agency_code,
+                func.max(SalesRecord.iteration_time).label("max_time")
+            ).filter(
+                SalesRecord.agency_code.in_(agency_codes_list),
+                SalesRecord.capture_day == today
+            ).group_by(SalesRecord.agency_code).subquery()
+        else:
+            # Subquery: max iteration_time por agency_code (cualquier día)
+            latest_sub = db.query(
+                SalesRecord.agency_code,
+                func.max(SalesRecord.iteration_time).label("max_time")
+            ).filter(
+                SalesRecord.agency_code.in_(agency_codes_list)
+            ).group_by(SalesRecord.agency_code).subquery()
+        
+        latest_records = db.query(SalesRecord).join(
+            latest_sub,
+            (SalesRecord.agency_code == latest_sub.c.agency_code) &
+            (SalesRecord.iteration_time == latest_sub.c.max_time)
+        ).all()
+        
+        # Indexar por agency_code para acceso O(1)
+        latest_by_code = {r.agency_code: r for r in latest_records}
+    else:
+        latest_by_code = {}
+    
     enriched_agencies = []
     for agency in agencies:
-        if today_only:
-            # Buscar el registro más reciente DE HOY
-            latest_record = db.query(SalesRecord).filter(
-                SalesRecord.agency_code == agency.code,
-                SalesRecord.capture_day == today
-            ).order_by(SalesRecord.iteration_time.desc()).first()
-        else:
-            # Buscar el registro más reciente de cualquier día
-            latest_record = db.query(SalesRecord).filter(
-                SalesRecord.agency_code == agency.code
-            ).order_by(SalesRecord.iteration_time.desc()).first()
+        latest_record = latest_by_code.get(agency.code)
         
         agency_data = AgencyResponse(
             code=agency.code,
@@ -901,7 +923,7 @@ async def execute_manual_iteration():
     if result["success"]:
         return result
     else:
-        raise HTTPException(status_code=500, detail=result["error"])
+        raise HTTPException(status_code=500, detail=result.get("message", "Error desconocido"))
 
 @router.post("/monitoring/continuous/enable")
 async def enable_continuous_mode(delay_seconds: int = 10):
@@ -1928,7 +1950,7 @@ async def batch_analyze_normality(request: Dict):
 
 # 🧠 === RUTAS DOM LEARNING ENGINE ===
 
-@router.get("/api/v1/dom-learning/table-anomalies")
+@router.get("/dom-learning/table-anomalies")
 async def get_table_anomalies():
     """🚨 Detectar anomalías en carga de tablas (lentitud, timeouts)"""
     try:
@@ -1957,7 +1979,7 @@ async def get_table_anomalies():
         logger.error(f"Error obteniendo anomalías de tabla: {e}")
         return {"success": False, "error": str(e)}
 
-@router.post("/api/v1/dom-learning/analyze-iteration")
+@router.post("/dom-learning/analyze-iteration")
 async def analyze_iteration_performance(data: dict):
     """📊 Analizar rendimiento de iteración específica"""
     try:
@@ -1975,7 +1997,7 @@ async def analyze_iteration_performance(data: dict):
         logger.error(f"Error analizando rendimiento: {e}")
         return {"success": False, "error": str(e)}
 
-@router.get("/api/v1/dom-learning/performance-insights")
+@router.get("/dom-learning/performance-insights")
 async def get_performance_insights():
     """💡 Obtener insights y recomendaciones de optimización"""
     try:
