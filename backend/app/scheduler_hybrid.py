@@ -6,12 +6,13 @@ Permite migración gradual y comparación de rendimiento
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime, date, timedelta
 import logging
 import time
 import psutil
 from .scraper import LotteryMonitorScraper
-from .alerts import AlertSystem
+from .alerts import AlertSystem, check_helper_reentry
 from .database import SessionLocal
 from .models import MonitoringSession, SystemLog
 from backend.config import Config, SITE_EXPRESS, SITE_REAL
@@ -425,6 +426,8 @@ class HybridMonitoringScheduler:
             self._update_progress_step("generate_alerts", "running")
             with SessionLocal() as db:
                 alerts_generated = self.alert_system.process_agencies_data(scraped_data, db)
+            # Verificar helper de re-alertado tras procesar alertas
+            check_helper_reentry()
             self._update_progress_step("generate_alerts", "success")
             
             duration = time.time() - start_time
@@ -696,6 +699,8 @@ class HybridMonitoringScheduler:
             self._update_progress_step("generate_alerts", "running")
             with SessionLocal() as db:
                 alerts_generated = self.alert_system.process_agencies_data(scraped_data, db)
+            # Verificar helper de re-alertado tras procesar alertas
+            check_helper_reentry()
             self._update_progress_step("generate_alerts", "success")
             
             duration = time.time() - start_time
@@ -915,6 +920,8 @@ class HybridMonitoringScheduler:
         if scraped_data:
             with SessionLocal() as db:
                 alerts_generated = self.alert_system.process_agencies_data(scraped_data, db)
+            # Verificar helper de re-alertado tras procesar alertas
+            check_helper_reentry()
             logger.info(f"✅ Scraping dirigido completado: {len(scraped_data)} agencias, {len(alerts_generated)} alertas en {time.time()-start_time:.2f}s")
             self._total_iterations += 1
         else:
@@ -1150,6 +1157,14 @@ class HybridMonitoringScheduler:
                 id='monitoring_job',
                 replace_existing=True
             )
+
+            # Programar reset diario a las 23:59
+            self.scheduler.add_job(
+                func=self._daily_reset,
+                trigger=CronTrigger(hour=23, minute=59),
+                id='daily_reset',
+                replace_existing=True
+            )
             
             # Iniciar el scheduler
             if not self.scheduler.running:
@@ -1157,11 +1172,76 @@ class HybridMonitoringScheduler:
             
             self.is_running = True
             logger.info(f"✅ Monitoreo híbrido iniciado (intervalo: {Config.MONITORING_INTERVAL} min)")
+            logger.info("⏰ Reset diario programado a las 23:59")
             return True
             
         except Exception as e:
             logger.error(f"❌ Error iniciando monitoreo: {e}")
             return False
+
+    def _daily_reset(self):
+        """Reset automático diario a las 23:59 — limpia estado interno para el nuevo día"""
+        logger.info("🔄 === RESET DIARIO AUTOMÁTICO (23:59) ===")
+        try:
+            # 1. Cerrar sesión de monitoreo del día
+            if self.current_session_id:
+                db = SessionLocal()
+                try:
+                    session = db.query(MonitoringSession).filter(
+                        MonitoringSession.id == self.current_session_id
+                    ).first()
+                    if session:
+                        session.end_time = datetime.now()
+                        session.status = "completed_daily_reset"
+                        session.total_iterations = self._total_iterations
+                        db.commit()
+                finally:
+                    db.close()
+
+            # 2. Resetear contadores internos
+            old_iterations = self._total_iterations
+            self._total_iterations = 0
+            self._failed_sites = []
+
+            # 3. Limpiar caches de scrapers
+            if self._classic_scraper:
+                try:
+                    self._classic_scraper.cleanup_safe()
+                except Exception as e:
+                    logger.warning(f"Error limpiando scraper clásico: {e}")
+                self._classic_scraper = None
+
+            if self._intelligent_scraper:
+                try:
+                    self._intelligent_scraper.cleanup_safe()
+                except Exception as e:
+                    logger.warning(f"Error limpiando scraper inteligente: {e}")
+                self._intelligent_scraper = None
+
+            # 4. Resetear métricas de comparación
+            self.performance_metrics = {
+                'classic': {'count': 0, 'total_time': 0, 'errors': 0},
+                'intelligent': {'count': 0, 'total_time': 0, 'errors': 0}
+            }
+
+            # 5. Crear nueva sesión para el día siguiente (se activará en minutos)
+            db = SessionLocal()
+            try:
+                tomorrow = (date.today() + timedelta(days=1)).isoformat()
+                session = MonitoringSession(
+                    session_date=tomorrow,
+                    status="active"
+                )
+                db.add(session)
+                db.commit()
+                self.current_session_id = session.id
+            finally:
+                db.close()
+
+            logger.info(f"✅ Reset diario completado: {old_iterations} iteraciones del día cerradas, estado limpio para nuevo día")
+
+        except Exception as e:
+            logger.error(f"❌ Error en reset diario: {e}", exc_info=True)
     
     def stop_monitoring(self) -> bool:
         """Detener el monitoreo automático"""

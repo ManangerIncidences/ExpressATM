@@ -57,8 +57,37 @@ def _migrate_alerts_status():
             conn.execute(text("ALTER TABLE alerts ADD COLUMN confirmed_at DATETIME"))
             print("Migración: columna 'confirmed_at' agregada a alerts")
 
+        # Agregar columnas del helper de re-alertado
+        helper_columns = {
+            'sales_at_reported': "FLOAT",
+            'balance_at_reported': "FLOAT",
+            'sales_at_confirmed': "FLOAT",
+            'balance_at_confirmed': "FLOAT",
+            'helper_cycle': "INTEGER DEFAULT 0",
+            'helper_opt_in': "BOOLEAN DEFAULT 1",
+        }
+        for col_name, col_type in helper_columns.items():
+            if col_name not in columns:
+                conn.execute(text(f"ALTER TABLE alerts ADD COLUMN {col_name} {col_type}"))
+                print(f"Migración: columna '{col_name}' agregada a alerts")
+
+def _ensure_helper_config():
+    """Asegurar que exista un registro de configuración del helper"""
+    from .models import HelperConfiguracion
+    db = SessionLocal()
+    try:
+        existing = db.query(HelperConfiguracion).first()
+        if not existing:
+            config = HelperConfiguracion()
+            db.add(config)
+            db.commit()
+            print("Helper: configuración por defecto creada")
+    finally:
+        db.close()
+
 def init_database():
     """Inicializar la base de datos y crear las tablas"""
     Base.metadata.create_all(bind=engine)
     _migrate_alerts_status()
-    print("Base de datos inicializada correctamente") 
+    _ensure_helper_config()
+    print("Base de datos inicializada correctamente")

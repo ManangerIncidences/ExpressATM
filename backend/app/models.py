@@ -55,6 +55,16 @@ class Alert(Base):
     status = Column(String, default='pendiente', index=True)  # 'pendiente', 'reportada', 'confirmada'
     reported_at = Column(DateTime, nullable=True)
     confirmed_at = Column(DateTime, nullable=True)
+
+    # Datos congelados al momento de transición (para helper de re-alertado)
+    sales_at_reported = Column(Float, nullable=True)
+    balance_at_reported = Column(Float, nullable=True)
+    sales_at_confirmed = Column(Float, nullable=True)
+    balance_at_confirmed = Column(Float, nullable=True)
+    
+    # Helper de re-alertado
+    helper_cycle = Column(Integer, default=0)        # Ciclo actual de re-alertado
+    helper_opt_in = Column(Boolean, default=True)    # Si el helper está activo para esta alerta
     
     # Fechas
     alert_date = Column(DateTime, default=func.now())
@@ -82,4 +92,28 @@ class SystemLog(Base):
     message = Column(Text)
     module = Column(String)  # scraper, alerts, api, etc.
     timestamp = Column(DateTime, default=func.now())
-    session_id = Column(Integer, nullable=True) 
+    session_id = Column(Integer, nullable=True)
+
+class HelperEvento(Base):
+    """Registro de cada detección del helper de re-alertado"""
+    __tablename__ = "helper_eventos"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    alert_id = Column(Integer, index=True)          # FK lógica a alerts.id
+    cycle_number = Column(Integer)                    # Ciclo en el que se detectó
+    variation_amount = Column(Float)                  # Monto de variación detectado
+    threshold_used = Column(Float)                    # Umbral que se superó
+    sales_at_detection = Column(Float)                # Ventas al momento de detección
+    notified = Column(Boolean, default=False)         # Si ya se notificó/procesó
+    created_at = Column(DateTime, default=func.now())
+
+class HelperConfiguracion(Base):
+    """Configuración de umbrales del helper de re-alertado (singleton)"""
+    __tablename__ = "helper_configuracion"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    umbral_base = Column(Float, default=2000.0)       # Umbral del ciclo 1
+    incremento_por_ciclo = Column(Float, default=1500.0)  # Incremento por cada ciclo
+    umbral_maximo = Column(Float, default=6000.0)     # Techo máximo
+    activo = Column(Boolean, default=True)             # Si el helper está activo globalmente
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

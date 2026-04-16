@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from .models import Alert, SalesRecord, Agency
+from .models import Alert, SalesRecord, Agency, HelperConfiguracion, HelperEvento
 from .database import SessionLocal
 from backend.config import Config
 from .agency_matcher import get_agency_matcher
@@ -162,15 +162,21 @@ class AlertSystem:
         """Verificar y generar alertas para una agencia EN UNA LOTERÍA ESPECÍFICA"""
         alerts = []
         agency_code = agency_data["agency_code"]
-        # Omitir alertas si la agencia ya tiene una alerta reportada/confirmada hoy PARA ESTE SORTEO
-        reported_alert = db.query(Alert).filter(
+        # Actualizar ventas/balance en alertas reportadas/confirmadas para mantener datos frescos
+        existing_reported = db.query(Alert).filter(
             Alert.agency_code == agency_code,
             Alert.alert_day == today,
             Alert.lottery_type == lottery_type,
             Alert.status.in_(['reportada', 'confirmada'])
-        ).first()
-        if reported_alert:
-            logger.debug(f"🔕 Se omiten alertas para {agency_code} ya reportado hoy")
+        ).all()
+        if existing_reported:
+            current_sales = agency_data["sales"]
+            current_balance = agency_data["balance"]
+            for alert in existing_reported:
+                alert.current_sales = current_sales
+                alert.current_balance = current_balance
+                db.add(alert)
+            logger.debug(f"🔄 Datos actualizados para {agency_code} (reportada/confirmada), no se generan nuevas alertas")
             return []
         
         logger.debug(f"🔍 Verificando alertas para {agency_code} en {lottery_type}")
@@ -436,3 +442,86 @@ class AlertSystem:
             "period_days": days,
             "growth_history": growth_history
         }
+
+
+def check_helper_reentry():
+    """Revisar alertas confirmadas con helper activo y detectar re-entrada por variación de ventas.
+    
+    Fórmula de umbral escalante:
+        umbral = min(base + ciclo × incremento, máximo)
+    
+    Una alerta confirmada se re-alerta si:
+        current_sales - sales_at_confirmed >= umbral_del_ciclo
+    """
+    db = SessionLocal()
+    try:
+        config = db.query(HelperConfiguracion).first()
+        if not config or not config.activo:
+            return []
+
+        today = date.today().isoformat()
+        confirmed_alerts = db.query(Alert).filter(
+            Alert.alert_day == today,
+            Alert.status == 'confirmada',
+            Alert.helper_opt_in == True,
+        ).all()
+
+        re_alertas = []
+        for alert in confirmed_alerts:
+            reference_sales = alert.sales_at_confirmed or alert.current_sales or 0
+            current = alert.current_sales or 0
+            variation = current - reference_sales
+
+            cycle = alert.helper_cycle
+            threshold = min(
+                config.umbral_base + cycle * config.incremento_por_ciclo,
+                config.umbral_maximo
+            )
+
+            if variation >= threshold:
+                # Registrar evento
+                evento = HelperEvento(
+                    alert_id=alert.id,
+                    cycle_number=cycle + 1,
+                    variation_amount=variation,
+                    threshold_used=threshold,
+                    sales_at_detection=current,
+                    notified=True,
+                )
+                db.add(evento)
+
+                # Transicionar la alerta de vuelta a pendiente
+                alert.status = 'pendiente'
+                alert.reported_at = None
+                alert.confirmed_at = None
+                alert.sales_at_reported = None
+                alert.sales_at_confirmed = None
+                alert.balance_at_reported = None
+                alert.balance_at_confirmed = None
+                alert.helper_cycle = cycle + 1
+
+                re_alertas.append({
+                    "alert_id": alert.id,
+                    "agency_code": alert.agency_code,
+                    "agency_name": alert.agency_name,
+                    "cycle": cycle + 1,
+                    "variation": variation,
+                    "threshold": threshold,
+                })
+
+                logger.info(
+                    f"🔄 Helper re-alerta: {alert.agency_name} "
+                    f"(ciclo {cycle + 1}, variación ${variation:,.0f}, umbral ${threshold:,.0f})"
+                )
+
+        if re_alertas:
+            db.commit()
+            logger.info(f"🔄 Helper: {len(re_alertas)} alertas re-activadas")
+
+        return re_alertas
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error en check_helper_reentry: {e}")
+        return []
+    finally:
+        db.close()

@@ -1031,6 +1031,7 @@ class MonitoringApp {
 
             this.currentAlerts = alerts;
             this.renderAlertsTable(alerts);
+            this.filterAlertsBySearch();
             this._alertsFetchApplied = seq;
             console.debug('[loadAlerts] aplicado seq', seq, 'alertas', alerts.length);
 
@@ -1103,8 +1104,13 @@ class MonitoringApp {
                 actionButton = `<button class="btn btn-success btn-action${btnExtraClass}" ${btnDisabledAttr} onclick="app.transitionMultipleAlerts('${group.agency_code}', '${group.lottery_type}')" title="Confirmar alertas de ${group.lottery_type.replace(/_/g, ' ')}">
                     ${btnLabel}
                 </button>`;
+            } else if (currentStatus === 'confirmada' && group.helper_opt_in && group.helper_cycle > 0) {
+                // Helper detectó re-entrada: mostrar botón de re-reportar
+                actionButton = `<button class="btn btn-warning btn-action" onclick="app.reReportAlerts('${group.agency_code}', '${group.lottery_type}')" title="Re-reportar (ciclo ${group.helper_cycle})">
+                    <i class="fas fa-redo"></i> Re-Reportar (${group.helper_cycle})
+                </button>`;
             }
-            // confirmada: sin botón de acción
+            // confirmada sin helper: sin botón de acción
             
             // Etiqueta de tipo de lotería (una por fila)
             const displayName = group.lottery_type.replace(/_/g, ' ');
@@ -1186,7 +1192,9 @@ class MonitoringApp {
                     current_sales: alert.current_sales,
                     current_balance: alert.current_balance,
                     latest_alert_date: alert.alert_date,
-                    alert_ids: []
+                    alert_ids: [],
+                    helper_cycle: alert.helper_cycle || 0,
+                    helper_opt_in: alert.helper_opt_in !== false,
                 };
             }
             
@@ -1992,6 +2000,34 @@ class MonitoringApp {
             console.error('Error transicionando alertas:', error);
             this.showNotification('Error procesando alertas', 'error');
             if (this._reportingAgencies) this._reportingAgencies.delete(agencyCode);
+        }
+    }
+
+    async reReportAlerts(agencyCode, lotteryType) {
+        try {
+            this._suspendIterationDetectionUntil = Date.now() + 2500;
+            const agencyAlerts = this.currentAlerts.filter(
+                a => a.agency_code === agencyCode && a.lottery_type === lotteryType && a.status === 'confirmada'
+            );
+            if (agencyAlerts.length === 0) return;
+
+            const promises = agencyAlerts.map(alert =>
+                fetch(`${this.apiBase}/alerts/${alert.id}/re-report`, { method: 'POST' })
+            );
+            const results = await Promise.all(promises);
+            const successCount = results.filter(r => r?.ok).length;
+
+            if (successCount > 0) {
+                this.showNotification(`${successCount} alerta(s) re-reportada(s) (helper)`, 'success');
+            } else {
+                this.showNotification('No se pudieron re-reportar las alertas', 'error');
+            }
+
+            setTimeout(() => { this.loadAlerts(); }, 320);
+            setTimeout(() => { this.loadDashboardData(); }, 450);
+        } catch (error) {
+            console.error('Error re-reportando alertas:', error);
+            this.showNotification('Error procesando re-reporte', 'error');
         }
     }
 
@@ -2868,6 +2904,8 @@ class MonitoringApp {
             if (autoChk) autoChk.checked = !!this.settings.autoShowIterationSummary;
             const pushChk = document.getElementById('enable-iteration-push');
             if (pushChk) pushChk.checked = !!this.settings.enableIterationPush;
+            // Cargar configuración del helper desde el backend
+            this.loadHelperConfig();
         }, 100);
     }
 
@@ -2907,6 +2945,9 @@ class MonitoringApp {
             // Guardar en localStorage
             localStorage.setItem('monitoringSettings', JSON.stringify(newSettings));
             this.settings = newSettings;
+
+            // Guardar configuración del helper en el backend
+            await this.saveHelperConfig();
 
             // Enviar configuración al backend
             const response = await fetch(`${this.apiBase}/settings/update`, {
@@ -2982,6 +3023,41 @@ class MonitoringApp {
     if (pushChk) pushChk.checked = defaultSettings.enableIterationPush;
     const soundChk = document.getElementById('enable-iteration-sound');
     if (soundChk) soundChk.checked = defaultSettings.enableIterationSound;
+    }
+
+    async loadHelperConfig() {
+        try {
+            const response = await fetch(`${this.apiBase}/helper/config`);
+            if (response.ok) {
+                const config = await response.json();
+                const el = (id) => document.getElementById(id);
+                if (el('helper-activo')) el('helper-activo').checked = config.activo;
+                if (el('helper-umbral-base')) el('helper-umbral-base').value = config.umbral_base;
+                if (el('helper-incremento')) el('helper-incremento').value = config.incremento_por_ciclo;
+                if (el('helper-umbral-maximo')) el('helper-umbral-maximo').value = config.umbral_maximo;
+            }
+        } catch (e) {
+            console.error('Error cargando config helper:', e);
+        }
+    }
+
+    async saveHelperConfig() {
+        try {
+            const el = (id) => document.getElementById(id);
+            const data = {
+                activo: el('helper-activo')?.checked ?? true,
+                umbral_base: parseFloat(el('helper-umbral-base')?.value) || 2000,
+                incremento_por_ciclo: parseFloat(el('helper-incremento')?.value) || 1500,
+                umbral_maximo: parseFloat(el('helper-umbral-maximo')?.value) || 6000,
+            };
+            await fetch(`${this.apiBase}/helper/config`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+        } catch (e) {
+            console.error('Error guardando config helper:', e);
+        }
     }
 
     updateUIFromSettings() {

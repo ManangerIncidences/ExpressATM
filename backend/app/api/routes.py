@@ -8,7 +8,7 @@ from typing import List, Optional, Dict
 from datetime import date, datetime
 import io
 from ..database import get_db
-from ..models import Alert, SalesRecord, Agency, MonitoringSession, SystemLog
+from ..models import Alert, SalesRecord, Agency, MonitoringSession, SystemLog, HelperEvento, HelperConfiguracion
 from ..alerts import AlertSystem
 from ..agency_behavior_analyzer import agency_analyzer, is_agency_unusual
 import numpy as np
@@ -46,6 +46,8 @@ class AlertResponse(BaseModel):
     alert_date: datetime
     reported_at: Optional[datetime] = None
     confirmed_at: Optional[datetime] = None
+    helper_cycle: int = 0
+    helper_opt_in: bool = True
     
     class Config:
         from_attributes = True
@@ -595,6 +597,8 @@ async def report_alert(alert_id: int, db: Session = Depends(get_db)):
         return {"message": "Alerta ya procesada", "alert_id": alert_id}
     alert.status = 'reportada'
     alert.reported_at = datetime.now()
+    alert.sales_at_reported = alert.current_sales
+    alert.balance_at_reported = alert.current_balance
     db.commit()
     return {"message": "Alerta marcada como reportada", "alert_id": alert_id}
 
@@ -627,20 +631,22 @@ async def transition_alert(alert_id: int, db: Session = Depends(get_db)):
     if not alert:
         raise HTTPException(status_code=404, detail="Alerta no encontrada")
     
-    transitions = {
-        'pendiente': ('reportada', 'reported_at'),
-        'reportada': ('confirmada', 'confirmed_at'),
-    }
-    
-    if alert.status not in transitions:
+    if alert.status == 'pendiente':
+        alert.status = 'reportada'
+        alert.reported_at = datetime.now()
+        alert.sales_at_reported = alert.current_sales
+        alert.balance_at_reported = alert.current_balance
+    elif alert.status == 'reportada':
+        alert.status = 'confirmada'
+        alert.confirmed_at = datetime.now()
+        alert.sales_at_confirmed = alert.current_sales
+        alert.balance_at_confirmed = alert.current_balance
+    else:
         raise HTTPException(status_code=400, detail=f"No se puede transicionar desde estado '{alert.status}'")
     
-    new_status, timestamp_field = transitions[alert.status]
-    alert.status = new_status
-    setattr(alert, timestamp_field, datetime.now())
     db.commit()
     
-    return {"message": f"Alerta transicionada a {new_status}", "alert_id": alert_id, "new_status": new_status}
+    return {"message": f"Alerta transicionada a {alert.status}", "alert_id": alert_id, "new_status": alert.status}
 
 @router.get("/agencies", response_model=List[AgencyResponse])
 async def get_agencies(
@@ -2551,4 +2557,90 @@ async def report_global_summary(
         "top_agencies": top_agencies,
         "lottery_distribution": lottery_distribution,
         "daily_trend": daily_trend,
+    }
+
+
+# ─────────────────────────────────────────────────
+# HELPER DE RE-ALERTADO
+# ─────────────────────────────────────────────────
+
+@router.get("/helper/config")
+async def get_helper_config(db: Session = Depends(get_db)):
+    """Obtener la configuración actual del helper de re-alertado."""
+    config = db.query(HelperConfiguracion).first()
+    if not config:
+        config = HelperConfiguracion()
+        db.add(config)
+        db.commit()
+        db.refresh(config)
+    return {
+        "umbral_base": config.umbral_base,
+        "incremento_por_ciclo": config.incremento_por_ciclo,
+        "umbral_maximo": config.umbral_maximo,
+        "activo": config.activo,
+    }
+
+
+class HelperConfigUpdate(BaseModel):
+    umbral_base: Optional[float] = None
+    incremento_por_ciclo: Optional[float] = None
+    umbral_maximo: Optional[float] = None
+    activo: Optional[bool] = None
+
+
+@router.put("/helper/config")
+async def update_helper_config(data: HelperConfigUpdate, db: Session = Depends(get_db)):
+    """Actualizar la configuración del helper de re-alertado."""
+    config = db.query(HelperConfiguracion).first()
+    if not config:
+        config = HelperConfiguracion()
+        db.add(config)
+    if data.umbral_base is not None:
+        config.umbral_base = data.umbral_base
+    if data.incremento_por_ciclo is not None:
+        config.incremento_por_ciclo = data.incremento_por_ciclo
+    if data.umbral_maximo is not None:
+        config.umbral_maximo = data.umbral_maximo
+    if data.activo is not None:
+        config.activo = data.activo
+    db.commit()
+    return {"message": "Configuración actualizada"}
+
+
+@router.post("/alerts/{alert_id}/helper-opt-out")
+async def helper_opt_out(alert_id: int, db: Session = Depends(get_db)):
+    """Desactivar el helper de re-alertado para una alerta específica."""
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alerta no encontrada")
+    alert.helper_opt_in = False
+    db.commit()
+    return {"message": "Helper desactivado para esta alerta", "alert_id": alert_id}
+
+
+@router.post("/alerts/{alert_id}/re-report")
+async def re_report_alert(alert_id: int, db: Session = Depends(get_db)):
+    """Re-reportar una alerta confirmada que disparó el helper de re-alertado."""
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alerta no encontrada")
+    if alert.status != 'confirmada':
+        raise HTTPException(status_code=400, detail="Solo se pueden re-reportar alertas confirmadas")
+    
+    # Registrar el re-reporte: congelar datos actuales, incrementar ciclo
+    alert.sales_at_reported = alert.current_sales
+    alert.balance_at_reported = alert.current_balance
+    alert.sales_at_confirmed = None
+    alert.balance_at_confirmed = None
+    alert.status = 'reportada'
+    alert.reported_at = datetime.now()
+    alert.confirmed_at = None
+    alert.helper_cycle += 1
+    db.commit()
+    
+    return {
+        "message": f"Alerta re-reportada (ciclo {alert.helper_cycle})",
+        "alert_id": alert_id,
+        "new_status": "reportada",
+        "cycle": alert.helper_cycle
     }

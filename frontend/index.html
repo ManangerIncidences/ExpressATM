@@ -623,6 +623,57 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Configuración del Helper de Re-Alertado -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-redo me-2 text-info"></i>Helper de Re-Alertado
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="helper-activo" checked>
+                                        <label class="form-check-label" for="helper-activo">
+                                            <i class="fas fa-power-off me-1"></i>Activar helper de re-alertado
+                                        </label>
+                                        <div class="form-text">Re-alerta automáticamente agencias confirmadas cuando la venta sigue subiendo</div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <label for="helper-umbral-base" class="form-label">Umbral Base (Ciclo 1)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input type="number" class="form-control" id="helper-umbral-base" 
+                                                       value="2000" min="500" step="500">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="helper-incremento" class="form-label">Incremento por Ciclo</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input type="number" class="form-control" id="helper-incremento" 
+                                                       value="1500" min="500" step="500">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="helper-umbral-maximo" class="form-label">Umbral Máximo</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input type="number" class="form-control" id="helper-umbral-maximo" 
+                                                       value="6000" min="1000" step="1000">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-text mt-2">
+                                        <small><i class="fas fa-info-circle text-info"></i> Fórmula: umbral = min(base + ciclo × incremento, máximo). Ejemplo: ciclo 1 = $2,000, ciclo 2 = $3,500, ciclo 3 = $5,000, ciclo 4+ = $6,000</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">

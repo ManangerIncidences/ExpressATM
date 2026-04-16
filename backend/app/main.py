@@ -1,12 +1,14 @@
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from .api.routes import router as api_router
 from .database import init_database
 import os
+import signal
 import logging
 from pathlib import Path
+from datetime import datetime
 
 # Configurar logging
 logging.basicConfig(
@@ -116,6 +118,31 @@ try:
                     return FileResponse(str(cand))
             return HTMLResponse(status_code=204)
 except Exception:
+    pass
+
+# Health check para monitoreo del VPS
+@app.get("/health")
+async def health_check():
+    return JSONResponse({
+        "status": "ok",
+        "timestamp": datetime.now().isoformat(),
+        "version": app.version
+    })
+
+# Shutdown graceful: limpiar scrapers al recibir señal de terminación
+def _graceful_shutdown(signum, frame):
+    logging.info(f"🛑 Señal {signum} recibida, cerrando scrapers...")
+    try:
+        from .scheduler_hybrid import monitoring_scheduler
+        monitoring_scheduler.stop_monitoring()
+    except Exception as e:
+        logging.error(f"Error en shutdown graceful: {e}")
+
+try:
+    signal.signal(signal.SIGTERM, _graceful_shutdown)
+    signal.signal(signal.SIGINT, _graceful_shutdown)
+except (OSError, ValueError):
+    # signal.signal puede fallar en threads secundarios o en Windows sin consola
     pass
 
 # Configurar templates
