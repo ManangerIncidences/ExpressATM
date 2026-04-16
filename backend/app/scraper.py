@@ -23,11 +23,7 @@ from configuracion_especifica_chance import apply_lottery_specific_config, monit
 # 🧠 Importar sistema de inteligencia DOM
 from .web_driver_observer import WebDriverObserver
 from .dom_intelligence import dom_intelligence
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Configurar logging ANTES de importaciones que lo usan
-logging.basicConfig(level=logging.INFO)
 
 # Agregar importación del sistema de visión
 try:
@@ -120,7 +116,7 @@ class LotteryMonitorScraper:
             
             # Solo las opciones esenciales para estabilidad
             chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-            chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+            chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
             
             # Configurar headless si es necesario
             if getattr(Config, 'HEADLESS_MODE', False):
@@ -2093,15 +2089,19 @@ class LotteryMonitorScraper:
                 logger.info(f"Proceso ChromeDriver (PID {pid}) y children terminados")
         except Exception as e:
             logger.debug(f"Kill by service PID: {e}")
-        # Fallback: matar todos los chromedriver.exe (solo ExpressATM los usa)
-        try:
-            import subprocess
-            subprocess.run(
-                ['taskkill', '/F', '/IM', 'chromedriver.exe'],
-                capture_output=True, timeout=10
-            )
-        except Exception:
-            pass
+        # Limpiar directorio temporal de perfil Chrome
+        self._cleanup_profile_dir()
+
+    def _cleanup_profile_dir(self):
+        """Eliminar directorio temporal de perfil Chrome si existe"""
+        if hasattr(self, '_profile_dir') and self._profile_dir:
+            try:
+                import shutil
+                shutil.rmtree(self._profile_dir, ignore_errors=True)
+                logger.debug(f"Perfil temporal eliminado: {self._profile_dir}")
+            except Exception:
+                pass
+            self._profile_dir = None
 
     def cleanup_safe(self):
         """Limpiar recursos de forma segura sin fallar"""

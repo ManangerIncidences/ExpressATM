@@ -23,9 +23,9 @@ class SiteConfig:
 
 SITE_EXPRESS = SiteConfig(
     site_id="express",
-    login_url="https://app.appltk.com/",
-    username="Jorge.marte@06",
-    password="40200175368Escanio",
+    login_url=os.getenv("EXPRESS_LOGIN_URL", "https://app.appltk.com/"),
+    username=os.getenv("EXPRESS_USERNAME", "Jorge.marte@06"),
+    password=os.getenv("EXPRESS_PASSWORD", "40200175368Escanio"),
     lotteries=[
         {"name": "CHANCE EXPRESS", "lottery_type": "CHANCE_EXPRESS", "step_key": "chance"},
         {"name": "CHANCE EXPRESS EXTRAORDINARIO", "lottery_type": "CHANCE_EXTRAORDINARIO", "step_key": "chance_extra"},
@@ -35,9 +35,9 @@ SITE_EXPRESS = SiteConfig(
 
 SITE_REAL = SiteConfig(
     site_id="real",
-    login_url="https://app.applotr.com/acceso2.aspx",
-    username="jorge.marte@06",
-    password="40200175368",
+    login_url=os.getenv("REAL_LOGIN_URL", "https://app.applotr.com/acceso2.aspx"),
+    username=os.getenv("REAL_USERNAME", "jorge.marte@06"),
+    password=os.getenv("REAL_PASSWORD", "40200175368"),
     lotteries=[
         {"name": "DOMINO REAL", "lottery_type": "DOMINO_REAL", "step_key": "domino_real"},
         {"name": "LOTO POOL REAL", "lottery_type": "LOTO_POOL_REAL", "step_key": "loto_pool_real"},
@@ -57,9 +57,9 @@ ALL_SITES = [SITE_EXPRESS, SITE_REAL]
 # Configuración de la aplicación
 class Config:
     # Credenciales del sitio web (legacy — usadas como fallback si no se provee SiteConfig)
-    LOGIN_URL = "https://app.appltk.com/"
-    USERNAME = "Jorge.marte@06"
-    PASSWORD = "40200175368Escanio"
+    LOGIN_URL = os.getenv("EXPRESS_LOGIN_URL", "https://app.appltk.com/")
+    USERNAME = os.getenv("EXPRESS_USERNAME", "Jorge.marte@06")
+    PASSWORD = os.getenv("EXPRESS_PASSWORD", "40200175368Escanio")
     
     # Ruta del ChromeDriver (automática y portable)
     # Puede ser provista por entorno; si no, se detecta automáticamente en runtime
@@ -95,8 +95,11 @@ class Config:
         "cargar_mas_btn": "a:contains('Cargar más')"
     }
     
-    # Configuración de base de datos
-    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./monitoring.db")
+    # Configuración de base de datos (ruta absoluta para evitar ambigüedad con cwd)
+    DATABASE_URL = os.getenv(
+        "DATABASE_URL",
+        f"sqlite:///{Path(__file__).resolve().parent.parent / 'monitoring.db'}"
+    )
     
     # Configuración de alertas
     ALERT_THRESHOLDS = {

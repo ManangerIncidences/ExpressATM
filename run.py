@@ -50,28 +50,8 @@ except ImportError:
         print("ExpressATM v2.0.0")
 
 def setup_logging():
-    """Configura el sistema de logging"""
-    # Crear directorio de logs si no existe
-    logs_dir = Path("logs")
-    logs_dir.mkdir(exist_ok=True)
-    
-    # Configurar formato de logs
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(logs_dir / "app.log", encoding='utf-8'),
-            logging.StreamHandler(sys.stdout)
-        ]
-    )
-    
-    # Configurar codificación UTF-8 para Windows
-    if sys.platform == "win32":
-        try:
-            # Intentar configurar codificación UTF-8 en Windows
-            os.system("chcp 65001 > nul 2>&1")
-        except:
-            pass
+    """Logging ya configurado centralmente en backend.app.main — no-op aquí"""
+    Path("logs").mkdir(exist_ok=True)
 
 def check_requirements():
     """Verifica que todas las dependencias estén instaladas"""
@@ -251,7 +231,7 @@ Ejemplos de uso:
     if not check_chromedriver():
         print("Continuando sin ChromeDriver (funcionalidad limitada)")
     
-    # Configurar variables de entorno desde .env si existe
+    # Configurar variables de entorno desde .env ANTES de importar backend
     env_file = Path(".env")
     if env_file.exists():
         try:
@@ -260,73 +240,11 @@ Ejemplos de uso:
             print("Variables de entorno cargadas desde .env")
         except ImportError:
             print("💡 Instala python-dotenv para usar archivo .env")
-    
+
     # Importar y ejecutar la aplicación
     try:
         import uvicorn
         from backend.app.main import app
-        from fastapi.responses import HTMLResponse, FileResponse
-        from fastapi.staticfiles import StaticFiles
-
-        ROOT = PROJECT_ROOT
-        FRONTEND = ROOT / "frontend"
-        STATIC = FRONTEND / "static"
-        LOGOS = FRONTEND / "logos"
-        SOUNDS = ROOT / "Sonidos"
-
-        def _route_exists(_path: str) -> bool:
-            for r in getattr(app, "routes", []):
-                if getattr(r, "path", "") == _path:
-                    return True
-            return False
-
-        def _has_mount(_prefix: str) -> bool:
-            for r in getattr(app, "routes", []):
-                if getattr(r, "path", "") == _prefix and r.__class__.__name__ == "Mount":
-                    return True
-            return False
-
-        # Montar directorios estáticos si existen
-        if STATIC.exists() and not _has_mount("/static"):
-            app.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
-        if LOGOS.exists() and not _has_mount("/logos"):
-            app.mount("/logos", StaticFiles(directory=str(LOGOS)), name="logos")
-        if SOUNDS.exists() and not _has_mount("/sounds"):
-            app.mount("/sounds", StaticFiles(directory=str(SOUNDS)), name="sounds")
-
-        def _serve_html(_filename: str) -> HTMLResponse:
-            fp = FRONTEND / _filename
-            if fp.exists():
-                try:
-                    content = fp.read_text(encoding="utf-8")
-                except Exception:
-                    content = fp.read_text(errors="ignore")
-                return HTMLResponse(content)
-            return HTMLResponse("Not Found", status_code=404)
-
-        # Rutas principales del frontend
-        if not _route_exists("/"):
-            @app.get("/", response_class=HTMLResponse)
-            def _root():
-                return _serve_html("index.html")
-
-        if not _route_exists("/dashboard"):
-            @app.get("/dashboard", response_class=HTMLResponse)
-            def _dashboard():
-                return _serve_html("dashboard.html")
-
-        if not _route_exists("/ai"):
-            @app.get("/ai", response_class=HTMLResponse)
-            def _ai():
-                return _serve_html("ai.html")
-
-        if not _route_exists("/favicon.ico"):
-            @app.get("/favicon.ico")
-            def _favicon():
-                for cand in (LOGOS / "imag_logo.ico", LOGOS / "logo.ico"):
-                    if cand.exists():
-                        return FileResponse(str(cand))
-                return HTMLResponse(status_code=204)
 
         # Ajustar puerto si está ocupado (considerando loopback)
         selected_port = _find_available_port(args.host, int(args.port or 8000))

@@ -7,27 +7,38 @@ from .database import init_database
 import os
 import signal
 import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from datetime import datetime
 
-# Configurar logging
+# Crear directorio de logs ANTES de configurar handlers
+os.makedirs("logs", exist_ok=True)
+
+# Configurar logging centralizado con rotación
+_log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+_file_handler = RotatingFileHandler(
+    'logs/app.log', maxBytes=10*1024*1024, backupCount=5, encoding='utf-8'
+)
+_file_handler.setFormatter(_log_formatter)
+_stream_handler = logging.StreamHandler()
+_stream_handler.setFormatter(_log_formatter)
+
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('logs/app.log'),
-        logging.StreamHandler()
-    ]
+    handlers=[_file_handler, _stream_handler]
 )
 
-# Crear directorio de logs si no existe
-os.makedirs("logs", exist_ok=True)
+# Importar versión
+try:
+    from version import VERSION
+except ImportError:
+    VERSION = "2.2.3"
 
 # Inicializar la aplicación FastAPI
 app = FastAPI(
     title="ExpressATM",
     description="Plataforma de monitoreo y análisis de agencias de lotería",
-    version="1.0.0"
+    version=VERSION
 )
 
 # Inicializar base de datos
@@ -71,31 +82,7 @@ try:
             return HTMLResponse(content)
         return HTMLResponse("Not Found", status_code=404)
 
-    # Rutas principales del frontend
-    if not _route_exists("/"):
-
-        @app.get("/", response_class=HTMLResponse)
-        def _root():
-            return _serve_html("index.html")
-
-    if not _route_exists("/dashboard"):
-
-        @app.get("/dashboard", response_class=HTMLResponse)
-        def _dashboard():
-            return _serve_html("dashboard.html")
-
-    if not _route_exists("/ai"):
-
-        @app.get("/ai", response_class=HTMLResponse)
-        def _ai():
-            return _serve_html("ai.html")
-
-    if not _route_exists("/reports"):
-
-        @app.get("/reports", response_class=HTMLResponse)
-        def _reports():
-            return _serve_html("static/reports-dist/index.html")
-
+    # Rutas auxiliares del frontend (sw.js, favicon)
     if not _route_exists("/sw.js"):
 
         @app.get("/sw.js")
@@ -117,8 +104,8 @@ try:
                 if cand.exists():
                     return FileResponse(str(cand))
             return HTMLResponse(status_code=204)
-except Exception:
-    pass
+except Exception as e:
+    logging.error(f"Error montando archivos estáticos: {e}")
 
 # Health check para monitoreo del VPS
 @app.get("/health")
@@ -183,7 +170,7 @@ async def api_root():
     """Endpoint raíz de la API"""
     return {
         "message": "Sistema de Monitoreo de Loterías API",
-        "version": "1.0.0",
+        "version": VERSION,
         "endpoints": {
             "dashboard": "/api/v1/dashboard",
             "alerts": "/api/v1/alerts",
@@ -204,9 +191,12 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Eventos al cerrar la aplicación"""
-    from .scheduler import monitoring_scheduler
-    if monitoring_scheduler.is_running:
-        monitoring_scheduler.stop_monitoring()
+    try:
+        from .scheduler_hybrid import monitoring_scheduler
+        if monitoring_scheduler.is_running:
+            monitoring_scheduler.stop_monitoring()
+    except Exception:
+        pass
     logging.info("ExpressATM detenido")
 
 if __name__ == "__main__":

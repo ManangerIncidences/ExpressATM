@@ -369,8 +369,8 @@ class HybridMonitoringScheduler:
             t_express.start()
             t_real.start()
             
-            t_express.join(timeout=600)
-            t_real.join(timeout=600)
+            t_express.join(timeout=180)
+            t_real.join(timeout=180)
             
             if t_express.is_alive():
                 logger.warning("⏱️ Timeout en sitio EXPRESS")
@@ -905,7 +905,7 @@ class HybridMonitoringScheduler:
             t.start()
         
         for t in threads:
-            t.join(timeout=600)
+            t.join(timeout=180)
         
         for s in site_scrapers:
             try:

@@ -57,6 +57,10 @@ node_modules/
 
 # Base de datos compartida para uso interno
 monitoring.db
+monitoring.db-shm
+monitoring.db-wal
+*.db-shm
+*.db-wal
 dom_intelligence.db
 vision_learning.db
 
