@@ -45,8 +45,10 @@ SITE_REAL = SiteConfig(
         {"name": "NUEVA YOL REAL", "lottery_type": "NUEVA_YOL_REAL", "step_key": "nueva_yol_real"},
         {"name": "NUEVA YOL REAL 5 MIN", "lottery_type": "NUEVA_YOL_REAL_5MIN", "step_key": "nueva_yol_5min"},
         {"name": "PEGA 3 REAL", "lottery_type": "PEGA_3_REAL", "step_key": "pega_3_real"},
-        {"name": "PEGA 4 REAL", "lottery_type": "PEGA_4_REAL", "step_key": "pega_4_real"},
-        {"name": "SUEÑO REAL", "lottery_type": "SUENO_REAL", "step_key": "sueno_real"},
+        # {"name": "PEGA 4 REAL", "lottery_type": "PEGA_4_REAL", "step_key": "pega_4_real"},  # temporalmente deshabilitado
+        # {"name": "SUEÑO REAL", "lottery_type": "SUENO_REAL", "step_key": "sueno_real"},  # temporalmente deshabilitado
+        {"name": "RAPIDITA EXTRAORDINARIA", "lottery_type": "RAPIDITA_EXTRAORDINARIA", "step_key": "rapidita_extraordinaria"},
+        {"name": "REPARTIDERA REAL", "lottery_type": "REPARTIDERA_REAL", "step_key": "repartidera_real"},
         {"name": "TU FECHA REAL", "lottery_type": "TU_FECHA_REAL", "step_key": "tu_fecha_real"},
     ],
 )
