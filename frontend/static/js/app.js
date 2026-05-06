@@ -46,14 +46,9 @@ class MonitoringApp {
         navigate_real: 10,
         base_filters_real: 12,
         domino_real: 20,
-        loto_pool_real: 20,
-        loto_real: 20,
         nueva_yol_real: 20,
-        nueva_yol_5min: 20,
         pega_3_real: 20,
         rapidita_extraordinaria: 20,
-        repartidera_real: 20,
-        tu_fecha_real: 20,
         data_ready: 4,
         generate_alerts: 8
     };
@@ -1621,14 +1616,9 @@ class MonitoringApp {
             {key:'navigate_real', label:'Navegación REAL'},
             {key:'base_filters_real', label:'Filtros REAL'},
             {key:'domino_real', label:'DOMINO REAL'},
-            {key:'loto_pool_real', label:'LOTO POOL REAL'},
-            {key:'loto_real', label:'LOTO REAL'},
             {key:'nueva_yol_real', label:'NUEVA YOL REAL'},
-            {key:'nueva_yol_5min', label:'NUEVA YOL 5MIN'},
             {key:'pega_3_real', label:'PEGA 3 REAL'},
             {key:'rapidita_extraordinaria', label:'RAPIDITA EXTRA'},
-            {key:'repartidera_real', label:'REPARTIDERA REAL'},
-            {key:'tu_fecha_real', label:'TU FECHA REAL'},
             {key:'data_ready', label:'Datos listos'},
             {key:'generate_alerts', label:'Generando alertas'},
             {key:'complete', label:'Completado'}
@@ -1769,13 +1759,9 @@ class MonitoringApp {
             case 'navigate_real': return 'Nav R';
             case 'base_filters_real': return 'Filtros R';
             case 'domino_real': return 'Domino';
-            case 'loto_pool_real': return 'Loto Pool';
-            case 'loto_real': return 'Loto';
             case 'nueva_yol_real': return 'N. Yol';
-            case 'nueva_yol_5min': return 'N. Yol 5m';
             case 'pega_3_real': return 'Pega 3';
             case 'rapidita_extraordinaria': return 'Rapidita';
-            case 'repartidera_real': return 'Repartidera';
             case 'tu_fecha_real': return 'Tu Fecha';
             case 'data_ready': return 'Datos';
             case 'generate_alerts': return 'Alertas';

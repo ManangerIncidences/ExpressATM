@@ -40,16 +40,16 @@ SITE_REAL = SiteConfig(
     password=os.getenv("REAL_PASSWORD", "40200175368"),
     lotteries=[
         {"name": "DOMINO REAL", "lottery_type": "DOMINO_REAL", "step_key": "domino_real"},
-        {"name": "LOTO POOL REAL", "lottery_type": "LOTO_POOL_REAL", "step_key": "loto_pool_real"},
-        {"name": "LOTO REAL", "lottery_type": "LOTO_REAL", "step_key": "loto_real"},
+        # {"name": "LOTO POOL REAL", "lottery_type": "LOTO_POOL_REAL", "step_key": "loto_pool_real"},  # temporalmente deshabilitado
+        # {"name": "LOTO REAL", "lottery_type": "LOTO_REAL", "step_key": "loto_real"},  # temporalmente deshabilitado
         {"name": "NUEVA YOL REAL", "lottery_type": "NUEVA_YOL_REAL", "step_key": "nueva_yol_real"},
-        {"name": "NUEVA YOL REAL 5 MIN", "lottery_type": "NUEVA_YOL_REAL_5MIN", "step_key": "nueva_yol_5min"},
+        # {"name": "NUEVA YOL REAL 5 MIN", "lottery_type": "NUEVA_YOL_REAL_5MIN", "step_key": "nueva_yol_5min"},  # temporalmente deshabilitado
         {"name": "PEGA 3 REAL", "lottery_type": "PEGA_3_REAL", "step_key": "pega_3_real"},
         # {"name": "PEGA 4 REAL", "lottery_type": "PEGA_4_REAL", "step_key": "pega_4_real"},  # temporalmente deshabilitado
         # {"name": "SUEÑO REAL", "lottery_type": "SUENO_REAL", "step_key": "sueno_real"},  # temporalmente deshabilitado
         {"name": "RAPIDITA EXTRAORDINARIA", "lottery_type": "RAPIDITA_EXTRAORDINARIA", "step_key": "rapidita_extraordinaria"},
-        {"name": "REPARTIDERA REAL", "lottery_type": "REPARTIDERA_REAL", "step_key": "repartidera_real"},
-        {"name": "TU FECHA REAL", "lottery_type": "TU_FECHA_REAL", "step_key": "tu_fecha_real"},
+        # {"name": "REPARTIDERA REAL", "lottery_type": "REPARTIDERA_REAL", "step_key": "repartidera_real"},  # temporalmente deshabilitado
+        # {"name": "TU FECHA REAL", "lottery_type": "TU_FECHA_REAL", "step_key": "tu_fecha_real"},  # temporalmente deshabilitado
     ],
 )
 
