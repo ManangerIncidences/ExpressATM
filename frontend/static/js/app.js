@@ -1849,6 +1849,7 @@ class MonitoringApp {
                 console.debug('[reportAlert] éxito backend id', alertId);
                 this.currentAlerts = this.currentAlerts.filter(a => a.id !== alertId);
                 this.renderAlertsTable(this.currentAlerts);
+                this.filterAlertsBySearch();
                 document.querySelectorAll(`tr[data-alert-id='${alertId}']`).forEach(tr=>tr.remove());
                 this.showNotification('Alerta marcada como reportada', 'success');
                 // Marcar agencia asociada para supresión (buscarla en currentAlerts original si aún existía)
@@ -1907,6 +1908,7 @@ class MonitoringApp {
             console.debug('[reportMultipleAlerts] click', agencyCode, 'alerts count', agencyAlerts.length);
             this.currentAlerts = this.currentAlerts.filter(a => a.agency_code !== agencyCode);
             this.renderAlertsTable(this.currentAlerts);
+            this.filterAlertsBySearch();
             if (document.querySelector(`tr[data-agid='${agencyCode}']`)) {
                 console.debug('[reportMultipleAlerts] fila aún presente tras render optimista, forzando eliminación DOM');
                 document.querySelectorAll(`tr[data-agid='${agencyCode}']`).forEach(tr=>tr.remove());
@@ -1918,6 +1920,7 @@ class MonitoringApp {
                 const idsToRemove = new Set(successAlerts.map(a=>a.id));
                 this.currentAlerts = this.currentAlerts.filter(a => !idsToRemove.has(a.id));
                 this.renderAlertsTable(this.currentAlerts);
+                this.filterAlertsBySearch();
                 // Marcar agencia como recientemente reportada para suprimir reaparición breve
                 if (!this._recentlyReportedAgencies) this._recentlyReportedAgencies = new Set();
                 this._recentlyReportedAgencies.add(agencyCode);
@@ -1958,6 +1961,7 @@ class MonitoringApp {
 
             // Re-render para mostrar spinner
             this.renderAlertsTable(this.currentAlerts);
+            this.filterAlertsBySearch();
 
             const promises = agencyAlerts.map(alert => 
                 fetch(`${this.apiBase}/alerts/${alert.id}/transition`, { method: 'POST' })
@@ -1966,6 +1970,7 @@ class MonitoringApp {
             // Eliminación optimista
             this.currentAlerts = this.currentAlerts.filter(a => !(a.agency_code === agencyCode && a.lottery_type === lotteryType));
             this.renderAlertsTable(this.currentAlerts);
+            this.filterAlertsBySearch();
 
             const results = await Promise.all(promises).finally(() => { this._reportingAgencies.delete(groupKey); });
             const successCount = results.filter(r => r?.ok).length;
@@ -3072,6 +3077,7 @@ class MonitoringApp {
         this.updateSortIcons();
         // Re-renderizar — el ordenamiento se aplica dentro de renderAlertsTable
         this.renderAlertsTable(this.currentAlerts);
+        this.filterAlertsBySearch();
     }
 
     updateSortIcons() {
